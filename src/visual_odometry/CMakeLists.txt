@@ -7,7 +7,9 @@ add_compile_options(-std=c++11)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 4.5.1 REQUIRED)
+
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
@@ -119,9 +121,10 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
+  # ${EIGEN3_INCLUDE_DIR}
 )
 
 ## Declare a C++ library
@@ -138,7 +141,8 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(test_opencv src/test_opencv.cpp)
-add_executable(test_kitti_small src/test_kitti_small.cpp)
+add_executable(test_kitti_image src/test_kitti_image.cpp)
+add_executable(test_kitti_pointcloud src/test_kitti_pointcloud.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -154,8 +158,11 @@ add_executable(test_kitti_small src/test_kitti_small.cpp)
 target_link_libraries(test_opencv
   ${catkin_LIBRARIES} ${OpenCV_LIBS}
 )
-target_link_libraries(test_kitti_small
+target_link_libraries(test_kitti_image
   ${catkin_LIBRARIES} ${OpenCV_LIBS}
+)
+target_link_libraries(test_kitti_pointcloud
+  ${catkin_LIBRARIES} Eigen3::Eigen ${OpenCV_LIBS}
 )
 
 #############
@@ -186,12 +193,15 @@ target_link_libraries(test_kitti_small
 #   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
 # )
 
-## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
+# Mark cpp header files for installation
+install(
+  DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING 
+    PATTERN "*.hpp"
+    PATTERN "*.h"
 #   PATTERN ".svn" EXCLUDE
-# )
+)
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES

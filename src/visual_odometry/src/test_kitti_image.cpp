@@ -171,7 +171,7 @@ std::vector<cv::DMatch> matchDescriptors(cv::Mat &desc_source, cv::Mat &desc_ref
 
 int main(int argc, char** argv) {
 
-    ros::init(argc, argv, "test_kitti_small");
+    ros::init(argc, argv, "test_kitti_image");
 
     cv::Mat image0, image1;
 
@@ -183,6 +183,10 @@ int main(int argc, char** argv) {
         printf("No image data \n");
         return -1;
     }
+
+    // Both should print Image x: rows = 375, cols = 1242
+    std::cout << "Image 0: rows = " << image0.size().height << ", cols = " << image0.size().width << std::endl;
+    std::cout << "Image 1: rows = " << image1.size().height << ", cols = " << image1.size().width << std::endl;
 
     // cv::namedWindow("Display Kitti Sample Image", cv::WINDOW_AUTOSIZE);
     // cv::imshow("Display Kitti Sample Image", image0);

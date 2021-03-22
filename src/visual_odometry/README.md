@@ -20,6 +20,49 @@ Reference: http://www.cvlibs.net/datasets/kitti/raw_data.php
 
 There're 4 image folders under each timestamp dataset: "image_00", "image_01", "image_02", "image_03". They correspond to grey left camera, grey right camera, RGB left camera, RGB right camera.
 
+## calibration file
+
+Reference: https://github.com/yanii/kitti-pcl/blob/master/KITTI_README.TXT
+
+>calib_cam_to_cam.txt: Camera-to-camera calibration
+>--------------------------------------------------
+>
+>  - S_xx: 1x2 size of image xx before rectification
+>  - K_xx: 3x3 calibration matrix of camera xx before rectification
+>  - D_xx: 1x5 distortion vector of camera xx before rectification
+>  - R_xx: 3x3 rotation matrix of camera xx (extrinsic)
+>  - T_xx: 3x1 translation vector of camera xx (extrinsic)
+>  - S_rect_xx: 1x2 size of image xx after rectification
+>  - R_rect_xx: 3x3 rectifying rotation to make image planes co-planar
+>  - P_rect_xx: 3x4 projection matrix after rectification
+>
+>Note: When using this dataset you will most likely need to access only
+>P_rect_xx, as this matrix is valid for the rectified image sequences.
+>
+>calib_velo_to_cam.txt: Velodyne-to-camera registration
+>------------------------------------------------------
+>
+>  - R: 3x3 rotation matrix
+>  - T: 3x1 translation vector
+>  - delta_f: deprecated
+>  - delta_c: deprecated
+>
+>R|T takes a point in Velodyne coordinates and transforms it into the
+>coordinate system of the left video camera. Likewise it serves as a
+>representation of the Velodyne coordinate frame in camera coordinates.
+>
+>calib_imu_to_velo.txt: GPS/IMU-to-Velodyne registration
+>-------------------------------------------------------
+>
+>  - R: 3x3 rotation matrix
+>  - T: 3x1 translation vector
+>
+>R|T takes a point in GPS/IMU coordinates and transforms it into the
+>coordinate system of the Velodyne scanner. Likewise it serves as a
+>representation of the GPS/IMU coordinate frame in Velodyne coordinates.
+
+From the paper "Vision meets robotics: The KITTI dataset", the `P_rect` is defined with element(1,3) and element(2,3) to be 0, but in real calibration file, these two entries are not necessarily exactly zero, especailly element(1,3). Anyway, the value would be 2 orders smaller than element(0,3).
+
 ## odometry data
 
 From http://www.cvlibs.net/datasets/kitti/eval_odometry.php: 
