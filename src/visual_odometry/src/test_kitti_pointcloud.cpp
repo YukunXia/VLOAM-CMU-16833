@@ -6,7 +6,7 @@
 #include "ros/ros.h"
 #include "ros/package.h"
 
-#include <visual_odometry/nanoflann.hpp>
+// #include <visual_odometry/nanoflann.hpp>
 #include <Eigen/Dense>
 #include <opencv2/opencv.hpp>
 // #include <opencv2/core.hpp>
@@ -234,8 +234,8 @@ void printPointCloud2dStats(const Eigen::MatrixXf& point_cloud_2d) {
 }
 
 std::tuple<Eigen::MatrixXf, Eigen::MatrixXf, Eigen::MatrixXf, Eigen::MatrixXi> downsamplePointCloud(const Eigen::MatrixXf& point_cloud_2d, const int grid_size, Eigen::MatrixXf& point_cloud_2d_dnsp) {
-    int new_width = std::ceil(static_cast<float>(IMG_WIDTH)/static_cast<float>(grid_size));
-    int new_height = std::ceil(static_cast<float>(IMG_HEIGHT)/static_cast<float>(grid_size));
+    const int new_width = std::ceil(static_cast<float>(IMG_WIDTH)/static_cast<float>(grid_size));
+    const int new_height = std::ceil(static_cast<float>(IMG_HEIGHT)/static_cast<float>(grid_size));
     Eigen::MatrixXf bucket_x = Eigen::MatrixXf::Zero(new_width, new_height); 
     Eigen::MatrixXf bucket_y = Eigen::MatrixXf::Zero(new_width, new_height); 
     Eigen::MatrixXf bucket_depth = Eigen::MatrixXf::Zero(new_width, new_height); Eigen::MatrixXi bucket_count = Eigen::MatrixXi::Zero(new_width, new_height); 
@@ -251,7 +251,7 @@ std::tuple<Eigen::MatrixXf, Eigen::MatrixXf, Eigen::MatrixXf, Eigen::MatrixXi> d
                 bucket_depth(index_x, index_y) = point_cloud_2d(i, 2);
                 ++global_count;
             }
-            else { // incremental average
+            else { // incremental averaging -> TODO: check better averaging method
                 bucket_x(index_x, index_y) += (point_cloud_2d(i, 0) - bucket_x(index_x, index_y))/bucket_count(index_x, index_y);
                 bucket_y(index_x, index_y) += (point_cloud_2d(i, 1) - bucket_y(index_x, index_y))/bucket_count(index_x, index_y);
                 bucket_depth(index_x, index_y) += (point_cloud_2d(i, 2) - bucket_depth(index_x, index_y))/bucket_count(index_x, index_y);
@@ -320,7 +320,107 @@ void visualizePointCloud(cv::Mat& image0_depth, const Eigen::MatrixXf& point_clo
     cv::waitKey(0); // wait for key to be pressed
 }
 
+float queryDepth(const float x, const float y, const Eigen::MatrixXf& bucket_x, const Eigen::MatrixXf& bucket_y, const Eigen::MatrixXf& bucket_depth, const Eigen::MatrixXi& bucket_count, const int grid_size, const int searching_radius) {
+    // grid size and searching radius are respectively recommended to be 5 and 2
+    assert(std::ceil(static_cast<float>(IMG_WIDTH)/static_cast<float>(grid_size)) == bucket_x.rows());
+    assert(std::ceil(static_cast<float>(IMG_HEIGHT)/static_cast<float>(grid_size)) == bucket_x.cols());
 
+    // float x = static_cast<float>(c);
+    // float y = static_cast<float>(IMG_HEIGHT - r);
+    int index_x = static_cast<int>(x/grid_size);
+    int index_y = static_cast<int>(y/grid_size);
+    const int new_width = bucket_x.rows(); // cautious, bucket axis0 is x, axis1 is y => different from image array
+    const int new_height = bucket_x.cols();
+
+    // select all neighbors in a certain local block
+    int index_x_, index_y_;
+    std::vector<Eigen::Vector3f> neighbors;
+    Eigen::Vector3f neighbor;
+    for (index_x_ = index_x-searching_radius; index_x_ <= index_x+searching_radius; ++index_x_) {
+        for (index_y_ = index_y-searching_radius; index_y_ <= index_y+searching_radius; ++index_y_) {
+            if (index_x_ >=0 and index_x_ < new_width and index_y_ >= 0 and index_y_ < new_height and bucket_count(index_x_, index_y_) > 0) {
+                neighbor(0) = bucket_x(index_x_, index_y_);
+                neighbor(1) = bucket_y(index_x_, index_y_);
+                neighbor(2) = bucket_depth(index_x_, index_y_);
+                neighbors.push_back(neighbor);
+            }
+        }
+    }
+
+    // edge case, no enough neighbors
+    if (neighbors.size() < 3)
+        return -1.0f; // a fixed unrealistic value representing query failure
+
+    // sort the vector; better ways can be quick select and heapify
+    std::sort(neighbors.begin(), neighbors.end(), [&](const Eigen::Vector3f& n1, const Eigen::Vector3f& n2) -> bool {
+        float distance_2d_n1 = std::sqrt(std::pow(x - n1(0), 2) + std::pow(y - n1(1), 2));
+        float distance_2d_n2 = std::sqrt(std::pow(x - n2(0), 2) + std::pow(y - n2(1), 2));
+        return distance_2d_n1 < distance_2d_n2;
+    });
+    
+    float z = (neighbors[0](2) + neighbors[1](2) + neighbors[2](2))/3.0f; 
+    assert(z > 0);
+    return z;
+    // // naive averaging is already providing good estimation => maybe just check the current bucket_depth is also a fast and good estimation
+
+    // // select 3 nearest neighbor
+    // Eigen::Vector3f n1 = neighbors[0]; // n1 here is the \hat{X}_i^{k−1} in eq.10 in DEMO paper
+    // n1(0) *= n1(2); // go back to 3d coordinate
+    // n1(1) *= n1(2); // go back to 3d coordinate
+    // Eigen::Vector3f n2 = neighbors[1];
+    // n2(0) *= n2(2);
+    // n2(1) *= n2(2);
+    // Eigen::Vector3f n3 = neighbors[2];
+    // n3(0) *= n3(2);
+    // n3(1) *= n3(2);
+
+    // // calculate depth
+    // Eigen::Vector3f cp = (n1 - n3).cross(n1 - n2);
+    // float z = n1.dot(cp) / (0.0001f + x*cp(0) + y*cp(1) + cp(2));
+    // // assert(z > 0); 
+    // return z;
+}
+
+void visualizeDepth(const Eigen::MatrixXf& bucket_x, const Eigen::MatrixXf& bucket_y, const Eigen::MatrixXf& bucket_depth, const Eigen::MatrixXi& bucket_count) {
+    cv::Mat image2 = cv::imread(image_file_path, cv::IMREAD_GRAYSCALE);
+    cv::cvtColor(image2, image2, cv::COLOR_GRAY2BGR);
+
+    int x, y;
+    float depth, depth_min = 0.1f, depth_max = 50.0f, ratio;    
+    for (x=0; x<IMG_WIDTH; x+=3) { // += 3 to make the visualization sparse
+        for (y=0; y<IMG_HEIGHT; y+=3) {
+            depth = queryDepth(static_cast<float>(x), static_cast<float>(y), bucket_x, bucket_y, bucket_depth, bucket_count, 5, 2);
+            if (depth > 0) {
+                ratio = std::max(std::min((depth-depth_min)/(depth_max-depth_min), 1.0f), 0.0f);
+                if (ratio < 0.5) {
+                    cv::circle(
+                        image2, 
+                        cv::Point(x, y), // x, y
+                        1,
+                        cv::Scalar(0, 255*ratio*2, 255*(1-ratio*2)),
+                        cv::FILLED,
+                        cv::LINE_8
+                    );
+                }
+                else {
+                    cv::circle(
+                        image2, 
+                        cv::Point(x, y),
+                        1,
+                        cv::Scalar(255*(ratio-0.5)*2, 255*(1-(ratio-0.5)*2), 0),
+                        cv::FILLED,
+                        cv::LINE_8
+                    );
+                }
+            }
+        }
+    }
+
+    cv::namedWindow("Display Kitti Sample Image With Depth Estimation", cv::WINDOW_AUTOSIZE);
+    cv::imshow("Display Kitti Sample Image With Depth Estimation", image2);
+    cv::imwrite(ros::package::getPath("visual_odometry") + "/figures/gray_image_with_depth_3nn_plane.png", image2);
+    cv::waitKey(0); // wait for key to be pressed
+}
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "test_kitti_pointcloud");
@@ -362,7 +462,7 @@ int main(int argc, char** argv) {
     // std::cout << bucket_x.rows() << ", " << bucket_x.cols() << std::endl;
     // print: 249, 75
 
-
+    visualizeDepth(bucket_x, bucket_y, bucket_depth, bucket_count);
 
     return 0;
 }
