@@ -5,6 +5,7 @@
 #include <opencv2/features2d.hpp>
 
 #include "ros/ros.h"
+#include "ros/package.h"
 // #include <cv_bridge/cv_bridge.h>
 
 using std::cout;
@@ -53,7 +54,9 @@ std::vector<cv::KeyPoint> detKeypointsShiTomasi(cv::Mat &img, const bool& visual
         cv::drawKeypoints(img, keypoints, vis_image, cv::Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
         std::string window_name = "Shi-Tomasi Corner Detector Results";
         cv::namedWindow(window_name, 6);
-        imshow(window_name, vis_image);
+        cv::imshow(window_name, vis_image);
+        // cv::imwrite(ros::package::getPath("visual_odometry") + "/figures/gray_image_with_keypoints.png", vis_image);
+
         cv::waitKey(0);
     }
 

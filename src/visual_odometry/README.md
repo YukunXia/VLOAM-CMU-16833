@@ -90,6 +90,19 @@ OpenCV load dataset: https://docs.opencv.org/3.4/dc/dfb/group__datasets__slam.ht
 
 ## Processing KITTI data
 
+### Image with Keypoints
+
+![Image0](figures/gray_image_with_keypoints0.png)
+
+![Image0](figures/gray_image_with_keypoints1.png)
+
+Performance:
+
+- Image0: Shi-Tomasi detection with n=2767 keypoints in 15.5039 ms
+- Image1: Shi-Tomasi detection with n=3062 keypoints in 12.8016 ms
+- Image0: ORB descriptor extraction in 6.35671 ms
+- Image1: ORB descriptor extraction in 5.10074 ms
+
 ### Image with Point Cloud
 
 ![Image with Point Cloud](figures/gray_image_with_depth.png)
