@@ -20,6 +20,18 @@ Reference: http://www.cvlibs.net/datasets/kitti/raw_data.php
 
 There're 4 image folders under each timestamp dataset: "image_00", "image_01", "image_02", "image_03". They correspond to grey left camera, grey right camera, RGB left camera, RGB right camera.
 
+NOTE: Currently, the running of the test code relies on that catkin_ws follows the following tree structure. And please run code at the root of catkin_ws.
+
+- catkin_ws
+    - build
+    - data
+        - 2011_09_26
+            - 2011_09_26_drive_0001_sync
+            - calib_cam_to_cam.txt
+            - calib_velo_to_cam.txt
+    - devel
+    - src
+
 ## calibration file
 
 Reference: https://github.com/yanii/kitti-pcl/blob/master/KITTI_README.TXT
