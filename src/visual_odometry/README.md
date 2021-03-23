@@ -1,6 +1,7 @@
 # Prerequisites
 
 OpenCV 4.5.1
+Eigen3 3.3
 
 # Troubleshooting
 
@@ -96,3 +97,13 @@ OpenCV load dataset: https://docs.opencv.org/3.4/dc/dfb/group__datasets__slam.ht
 ### Image with Downsampled Point Cloud (grid size = 5)
 
 ![Image with Point Cloud](figures/gray_image_with_depth_dnsp.png)
+
+### Depth Image Estimated by averaging the 3 Nearest Neighbors' Depth in the Downsampled Point Cloud
+
+![Image with Point Cloud](figures/gray_image_with_depth_3nn_avg.png)
+
+### Depth Image Estimated by Fitting a Plane from the 3 Nearest Neighbors in the Downsampled Point Cloud
+
+![Image with Point Cloud](figures/gray_image_with_depth_3nn_plane.png)
+
+This method is recommended in the original DEMO paper, but in the current downsampling method and hyperparameter setting, it's estimation quality is visually lower than naive averaing estimation.
