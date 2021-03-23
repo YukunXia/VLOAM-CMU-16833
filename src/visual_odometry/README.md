@@ -74,3 +74,13 @@ From http://www.cvlibs.net/datasets/kitti/eval_odometry.php:
 - Download odometry development kit (1 MB)
 
 OpenCV load dataset: https://docs.opencv.org/3.4/dc/dfb/group__datasets__slam.html
+
+## Processing KITTI data
+
+### Image with Point Cloud
+
+![Image with Point Cloud](figures/gray_image_with_depth.png)
+
+### Image with Downsampled Point Cloud (grid size = 5)
+
+![Image with Point Cloud](figures/gray_image_with_depth_dnsp.png)
