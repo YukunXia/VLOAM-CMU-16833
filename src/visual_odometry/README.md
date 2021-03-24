@@ -20,6 +20,9 @@ I installed the [latest stable release](http://ceres-solver.org/ceres-solver-2.0
 
 ## 3. Using catkin_make with Ceres
 
+- Bug 0: Cmake error, `Could not find a package configuration file provided by "Ceres" with any of the following names: CeresConfig.cmake ceres-config.cmake`
+    - Reason: Ceres path is not recognized by Cmake
+    - Fix: Add `set(Ceres_DIR "/usr/local/lib/cmake/Ceres/")` to CMakeLists.txt
 - Bug 1: fatal error: Eigen/Core: No such file or directory
     - Reason: the installation folder of Eigen is under .../eigen3/Eigen/...
     - Fix: `sudo ln -s /usr/local/include/eigen3/Eigen /usr/include/Eigen`

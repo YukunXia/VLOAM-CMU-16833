@@ -131,10 +131,12 @@ include_directories(
   # ${EIGEN3_INCLUDE_DIR}
 )
 
-## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/visual_odometry.cpp
-# )
+# Declare a C++ library
+add_library(image_util SHARED
+  src/image_util.cpp
+)
+target_link_libraries(image_util ${catkin_LIBRARIES})
+set_target_properties(image_util PROPERTIES PUBLIC_HEADER include/${PROJECT_NAME}/image_util.h)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -145,9 +147,10 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(test_opencv src/test_opencv.cpp)
-add_executable(test_kitti_image src/test_kitti_image.cpp)
+add_executable(test_kitti_image src/test/test_kitti_image.cpp)
 add_executable(test_kitti_pointcloud src/test_kitti_pointcloud.cpp)
 add_executable(test_ceres src/test_ceres.cpp)
+add_executable(test_image_util src/test/test_image_util.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -171,6 +174,9 @@ target_link_libraries(test_kitti_pointcloud
 )
 target_link_libraries(test_ceres
   ${catkin_LIBRARIES} ${CERES_LIBRARIES}
+)
+target_link_libraries(test_image_util
+  ${catkin_LIBRARIES} ${OpenCV_LIBS} image_util
 )
 
 #############
