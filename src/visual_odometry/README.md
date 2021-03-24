@@ -2,6 +2,7 @@
 
 OpenCV 4.5.1
 Eigen3 3.3
+Ceres 2.0
 
 # Troubleshooting
 
@@ -12,6 +13,38 @@ Solution: Modify `_include_dirs` in cv_bridgeConfig.cmake (at line 96)
 The default `_include_dirs` is set by `set(_include_dirs "include;/usr/include/opencv4")`, while my opencv is installed under `/usr/local/include/opencv4`.
 
 Reference: https://github.com/cipherdev/src/issues/13
+
+## 2. Installing Ceres
+
+I installed the [latest stable release](http://ceres-solver.org/ceres-solver-2.0.0.tar.gz) as mentioned in http://ceres-solver.org/installation.html. At step "make test", my computer got stuck at step 31 "dynamic_sparsity_test". This happened to both latest stable release and latest github repository. This bug was ignored, and I went to the next command "make install".
+
+## 3. Using catkin_make with Ceres
+
+- Bug 1: fatal error: Eigen/Core: No such file or directory
+    - Reason: the installation folder of Eigen is under .../eigen3/Eigen/...
+    - Fix: `sudo ln -s /usr/local/include/eigen3/Eigen /usr/include/Eigen`
+    - Reference: https://github.com/opencv/opencv/issues/14868
+- Bug 2: integer_sequence’ is not a member of ‘std’
+    - Reason: Ceres 2.0 relies on c++ 14
+    - Fix: change `add_compile_options(-std=c++11)` to `add_compile_options(-std=c++14)`
+- Bug 3: test_ceres.cpp:(.text+0xe4): undefined reference to `ceres::Problem::Problem()'
+    - Reason: Ceres library was not linked
+    - Fix: Add `${CERES_LIBRARIES}` to target_link_libraries. Eg. `target_link_libraries(YOUR_TARGET_EXEC ${catkin_LIBRARIES} ${CERES_LIBRARIES})`
+
+Hello world file then returns me the following results
+>rosrun visual_odometry test_ceres   
+>
+>iter      cost      cost_change  |gradient|   |step|    tr_ratio  tr_radius  ls_iter  iter_time  total_time
+>
+>   0  4.512500e+01    0.00e+00    9.50e+00   0.00e+00   0.00e+00  1.00e+04        0    1.72e-05    1.09e-04
+>
+>   1  4.511598e-07    4.51e+01    9.50e-04   9.50e+00   1.00e+00  3.00e+04        1    4.20e-05    1.95e-04
+>
+>   2  5.012552e-16    4.51e-07    3.17e-08   9.50e-04   1.00e+00  9.00e+04        1    7.87e-06    2.11e-04
+>
+>Ceres Solver Report: Iterations: 3, Initial cost: 4.512500e+01, Final cost: 5.012552e-16, Termination: CONVERGENCE
+>
+>x : 0.5 -> 10
 
 # Kitti
 

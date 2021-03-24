@@ -1,8 +1,10 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(visual_odometry)
 
+set(Ceres_DIR "/usr/local/lib/cmake/Ceres/")
+
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++14)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -17,6 +19,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   roslib
+  Ceres
 )
 
 ## System dependencies are found with CMake's conventions
@@ -144,6 +147,7 @@ include_directories(
 add_executable(test_opencv src/test_opencv.cpp)
 add_executable(test_kitti_image src/test_kitti_image.cpp)
 add_executable(test_kitti_pointcloud src/test_kitti_pointcloud.cpp)
+add_executable(test_ceres src/test_ceres.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -164,6 +168,9 @@ target_link_libraries(test_kitti_image
 )
 target_link_libraries(test_kitti_pointcloud
   ${catkin_LIBRARIES} Eigen3::Eigen ${OpenCV_LIBS}
+)
+target_link_libraries(test_ceres
+  ${catkin_LIBRARIES} ${CERES_LIBRARIES}
 )
 
 #############

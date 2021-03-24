@@ -348,7 +348,7 @@ float queryDepth(const float x, const float y, const Eigen::MatrixXf& bucket_x, 
     }
 
     // edge case, no enough neighbors
-    if (neighbors.size() < 3)
+    if (neighbors.size() < 10)
         return -1.0f; // a fixed unrealistic value representing query failure
 
     // sort the vector; better ways can be quick select and heapify
@@ -358,7 +358,7 @@ float queryDepth(const float x, const float y, const Eigen::MatrixXf& bucket_x, 
         return distance_2d_n1 < distance_2d_n2;
     });
     
-    float z = (neighbors[0](2) + neighbors[1](2) + neighbors[2](2))/3.0f; 
+    float z = (neighbors[0](2) + neighbors[1](2) + neighbors[2](2))/3.0f;  // TODO: weighted distance
     assert(z > 0);
     return z;
     // // naive averaging is already providing good estimation => maybe just check the current bucket_depth is also a fast and good estimation
