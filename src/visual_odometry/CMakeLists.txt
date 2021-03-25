@@ -5,6 +5,7 @@ set(Ceres_DIR "/usr/local/lib/cmake/Ceres/")
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++14)
+# TODO: check if -O3 is needed
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -133,10 +134,17 @@ include_directories(
 
 # Declare a C++ library
 add_library(image_util SHARED
-  src/image_util.cpp
+src/image_util.cpp
 )
 target_link_libraries(image_util ${catkin_LIBRARIES})
 set_target_properties(image_util PROPERTIES PUBLIC_HEADER include/${PROJECT_NAME}/image_util.h)
+
+
+add_library(point_cloud_util SHARED
+  src/point_cloud_util.cpp
+)
+target_link_libraries(point_cloud_util ${catkin_LIBRARIES})
+set_target_properties(point_cloud_util PROPERTIES PUBLIC_HEADER include/${PROJECT_NAME}/point_cloud_util.h)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -146,11 +154,12 @@ set_target_properties(image_util PROPERTIES PUBLIC_HEADER include/${PROJECT_NAME
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(test_opencv src/test_opencv.cpp)
-add_executable(test_kitti_image src/test/test_kitti_image.cpp)
-add_executable(test_kitti_pointcloud src/test_kitti_pointcloud.cpp)
-add_executable(test_ceres src/test_ceres.cpp)
-add_executable(test_image_util src/test/test_image_util.cpp)
+add_executable(test_opencv test/test_opencv.cpp)
+add_executable(test_kitti_image test/test_kitti_image.cpp)
+add_executable(test_kitti_pointcloud test/test_kitti_pointcloud.cpp)
+add_executable(test_ceres test/test_ceres.cpp)
+add_executable(test_image_util test/test_image_util.cpp)
+add_executable(test_point_cloud_util test/test_point_cloud_util.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -177,6 +186,9 @@ target_link_libraries(test_ceres
 )
 target_link_libraries(test_image_util
   ${catkin_LIBRARIES} ${OpenCV_LIBS} image_util
+)
+target_link_libraries(test_point_cloud_util
+  ${catkin_LIBRARIES} ${OpenCV_LIBS} point_cloud_util
 )
 
 #############

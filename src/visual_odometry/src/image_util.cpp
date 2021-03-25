@@ -44,6 +44,7 @@ namespace vloam {
                 detector = cv::SIFT::create();
             else {
                 std::cerr << "Detector is not implemented" << std::endl;
+                exit(EXIT_FAILURE);
             }
             
             detector->detect(img, keypoints);
@@ -104,6 +105,7 @@ namespace vloam {
         }
         else {
             std::cerr << "Decscriptor is not implemented" << std::endl;
+            exit(EXIT_FAILURE);
         }
 
         if (print_result)
