@@ -28,15 +28,16 @@ namespace vloam {
                 visualize_result = false;
                 detector_type = DetectorType::ShiTomasi;
                 descriptor_type = DescriptorType::ORB;
-                matcher_type = MatcherType::FLANN;
-                selector_type = SelectType::KNN;
+                matcher_type = MatcherType::BF;
+                selector_type = SelectType::NN;
             }
 
             std::vector<cv::KeyPoint> detKeypoints(cv::Mat &img);
             void saveKeypointsImage(const std::string file_name);
             cv::Mat descKeypoints(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img);
             std::vector<cv::DMatch> matchDescriptors(cv::Mat &desc_source, cv::Mat &desc_ref);
-            void visualizeMatches(const cv::Mat &image0, const cv::Mat &image1, const std::vector<cv::KeyPoint> &keypoints0, const std::vector<cv::KeyPoint> &keypoints1, const std::vector<cv::DMatch>& matches);
+            void visualizeMatchesCallBack(int event, int x, int y);
+            void visualizeMatches(const cv::Mat &image0, const cv::Mat &image1, const std::vector<cv::KeyPoint> &keypoints0, const std::vector<cv::KeyPoint> &keypoints1, const std::vector<cv::DMatch>& matches, const int stride = 10);
 
             // std::string path_prefix;
             bool print_result;

@@ -112,6 +112,19 @@ Reference: https://github.com/yanii/kitti-pcl/blob/master/KITTI_README.TXT
 
 From the paper "Vision meets robotics: The KITTI dataset", the `P_rect` is defined with element(1,3) and element(2,3) to be 0, but in real calibration file, these two entries are not necessarily exactly zero, especailly element(1,3). Anyway, the value would be 2 orders smaller than element(0,3).
 
+Eq.7 in the origin paper: 
+
+$$y = P_{rect}^{(i)} R_{rect}^{(0)} T_{velo}^{cam} x$$
+
+$P_{rect}^{(i)}$ is 3x4, named as project, but is actually the intrinsics K.
+
+$R_{rect}^{(0)}$ is 4x4, named as rotation, but is actually appended with an unit diagonal element. This transforms from unrectified camera i to rectified camera i.
+
+<!-- Left to $T_{velo}^{cam}$, there should be one more transformation if $i \ne 0$, $\begin{bmatrix} R_{0i} & T_{0i} \\ 0 & 1 \end{bmatrix}$, transforming points from camera 0 to camera i. (Or in the inverse direction? This should be further examined.) -->
+<!-- use R_rect_00 everywhere, reference https://github.com/utiasSTARS/pykitti/issues/34 -->
+
+$T_{velo}^{cam}$ is 4x4, consistent with the name. It transforms points from velodyne coordinate to (unrectified) camera 0 coordinate.
+
 ## odometry data
 
 From http://www.cvlibs.net/datasets/kitti/eval_odometry.php: 

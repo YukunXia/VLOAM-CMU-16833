@@ -29,6 +29,7 @@ namespace vloam {
             void downsamplePointCloud();
             void visualizePointCloud(const std::string image_file_path, const bool select_downsampled = true);
             float queryDepth(const float x, const float y, const int searching_radius = 2) const;
+            void visualizeDepthCallBack(int event, int x, int y);
             void visualizeDepth(const std::string image_file_path);
     
         // private:

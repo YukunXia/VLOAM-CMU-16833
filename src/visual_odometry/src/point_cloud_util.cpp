@@ -61,6 +61,8 @@ namespace vloam {
             int end = line.find(delim);
             curr = line.substr(start, end - start);
             // std::cout << curr << ", "; 
+            // TODO: if not just choosing camera 0, check R_0x T_0x for an extra transformation,
+            // TODO: and R_00 is an identity matrix, T_00 is (almost) zero matrix
             if (curr == "R_rect_00:") {
                 int index = 0;
                 while (end != std::string::npos) {
@@ -105,7 +107,6 @@ namespace vloam {
         float *px = data+0;
         float *py = data+1;
         float *pz = data+2;
-        float *pr = data+3;
 
         // load point cloud
         FILE *stream;
@@ -117,7 +118,7 @@ namespace vloam {
             point_cloud_3d_tilde(i, 0) = *px;
             point_cloud_3d_tilde(i, 1) = *py;
             point_cloud_3d_tilde(i, 2) = *pz;
-            px+=4; py+=4; pz+=4; pr+=4;
+            px+=4; py+=4; pz+=4;
         }
 
         fclose(stream);
@@ -258,6 +259,10 @@ namespace vloam {
         cv::waitKey(0); // wait for key to be pressed
     }
 
+    // float triangleArea(const Eigen::Vector2f& A, const Eigen::Vector2f& B, const Eigen::Vector2f& C) {
+
+    // }
+
     float PointCloudUtil::queryDepth(const float x, const float y, const int searching_radius) const {
         // grid size and searching radius are respectively recommended to be 5 and 2
         assert(std::ceil(static_cast<float>(IMG_WIDTH)/static_cast<float>(downsample_grid_size)) == bucket_x.rows());
@@ -282,6 +287,7 @@ namespace vloam {
                     neighbor(2) = bucket_depth(index_x_, index_y_);
                     neighbor(3) = std::sqrt(std::pow(x - neighbor(0), 2) + std::pow(y - neighbor(1), 2));
                     neighbors.push_back(neighbor);
+                    // std::cout << neighbor.transpose() << std::endl;
                 }
             }
         }
@@ -294,7 +300,30 @@ namespace vloam {
         std::sort(neighbors.begin(), neighbors.end(), [&](const Eigen::Vector4f& n1, const Eigen::Vector4f& n2) -> bool {
             return n1(3) < n2(3);
         });
-        
+
+        // Eigen::Vector2f n0to1 = neighbors[1].head(2) - neighbors[0].head(2);
+        // Eigen::Vector2f n0to2 = neighbors[2].head(2) - neighbors[0].head(2);
+        // Eigen::Vector2f n0toP;
+        // n0toP << x - neighbors[0](0), y - neighbors[0](1);
+        // Eigen::Vector2f n1to0 = neighbors[0].head(2) - neighbors[1].head(2);
+        // Eigen::Vector2f n1to2 = neighbors[2].head(2) - neighbors[1].head(2);
+        // Eigen::Vector2f n1toP;
+        // n1toP << x - neighbors[1](0), y - neighbors[1](1);
+        // Eigen::Vector2f n2to0 = neighbors[0].head(2) - neighbors[2].head(2);
+        // Eigen::Vector2f n2to1 = neighbors[1].head(2) - neighbors[2].head(2);
+        // Eigen::Vector2f n2toP;
+        // n2toP << x - neighbors[2](0), y - neighbors[2](1);
+
+        // if ((n0to1*n0to2) * (n0to1*n0toP) < 0 or )
+
+        // float area_012 = 
+
+        // float z = (neighbors[0](2) + neighbors[1](2) + neighbors[2](2))/3.0f;  // TODO: weighted distance -> Done? need to test     
+
+        // std::cout << neighbors[0].head(3).transpose() << std::endl;
+        // std::cout << neighbors[1].head(3).transpose() << std::endl;
+        // std::cout << neighbors[2].head(3).transpose() << "\n" << std::endl;
+
         float z = (neighbors[0](2)*neighbors[0](3) + neighbors[1](2)*neighbors[1](3) + neighbors[2](2)*neighbors[2](3))/(0.0001f + neighbors[0](3) + neighbors[1](3) + neighbors[2](3));  // TODO: weighted distance -> Done? need to test
         assert(z > 0);
         return z;
@@ -316,6 +345,18 @@ namespace vloam {
         // float z = n1.dot(cp) / (0.0001f + x*cp(0) + y*cp(1) + cp(2));
         // // assert(z > 0); // can't guarantee
         // return z;
+    }
+
+    void PointCloudUtil::visualizeDepthCallBack(int event, int x, int y) {
+        if  ( event == cv::EVENT_LBUTTONDOWN ) {
+            std::cout << "Left button of the mouse is clicked - position (" << x << ", " << y << "), and the depth is " << PointCloudUtil::queryDepth(x, y) << std::endl;
+        }
+    }
+
+    void visualizeDepthOnMouse(int ev, int x, int y, int, void* obj) {
+        PointCloudUtil* pcu = static_cast<PointCloudUtil*>(obj);
+        if (pcu)
+            pcu->visualizeDepthCallBack(ev, x, y);
     }
 
     void PointCloudUtil::visualizeDepth(const std::string image_file_path) {
@@ -350,10 +391,21 @@ namespace vloam {
                         );
                     }
                 }
+                // else {
+                //     cv::circle(
+                //         image_with_depth, 
+                //         cv::Point(x, y), // x, y
+                //         1,
+                //         cv::Scalar(255, 0, 255),
+                //         cv::FILLED,
+                //         cv::LINE_8
+                //     );
+                // }
             }
         }
 
         cv::namedWindow("Display Kitti Sample Image With Depth Estimation", cv::WINDOW_AUTOSIZE);
+        cv::setMouseCallback("Display Kitti Sample Image With Depth Estimation", visualizeDepthOnMouse, this);
         cv::imshow("Display Kitti Sample Image With Depth Estimation", image_with_depth);
         // cv::imwrite(ros::package::getPath("visual_odometry") + "/figures/gray_image_with_depth_3nn_plane.png", image2);
         cv::waitKey(0); // wait for key to be pressed

@@ -4,8 +4,8 @@ project(visual_odometry)
 set(Ceres_DIR "/usr/local/lib/cmake/Ceres/")
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++14)
-# TODO: check if -O3 is needed
+add_compile_options(-std=c++14 -O3)
+# TODO: check if -O3 is needed -> Yes, Preprocessing 2 frames took 1000ms without -O3, but now takes 63ms with -O3 
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -158,8 +158,10 @@ add_executable(test_opencv test/test_opencv.cpp)
 add_executable(test_kitti_image test/test_kitti_image.cpp)
 add_executable(test_kitti_pointcloud test/test_kitti_pointcloud.cpp)
 add_executable(test_ceres test/test_ceres.cpp)
+add_executable(test_ceres_BA test/test_ceres_BA.cpp)
 add_executable(test_image_util test/test_image_util.cpp)
 add_executable(test_point_cloud_util test/test_point_cloud_util.cpp)
+add_executable(test_f2f_motion_estimation test/test_f2f_motion_estimation.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -184,11 +186,17 @@ target_link_libraries(test_kitti_pointcloud
 target_link_libraries(test_ceres
   ${catkin_LIBRARIES} ${CERES_LIBRARIES}
 )
+target_link_libraries(test_ceres_BA
+  ${catkin_LIBRARIES} ${CERES_LIBRARIES}
+)
 target_link_libraries(test_image_util
   ${catkin_LIBRARIES} ${OpenCV_LIBS} image_util
 )
 target_link_libraries(test_point_cloud_util
   ${catkin_LIBRARIES} ${OpenCV_LIBS} point_cloud_util
+)
+target_link_libraries(test_f2f_motion_estimation
+  ${catkin_LIBRARIES} ${OpenCV_LIBS} image_util point_cloud_util ${CERES_LIBRARIES}
 )
 
 #############

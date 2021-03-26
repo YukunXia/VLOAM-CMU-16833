@@ -57,7 +57,12 @@ namespace vloam {
 
         if (visualize_result)
         {
+            // std::vector<cv::KeyPoint> fake_keypoints;
+            // fake_keypoints.push_back(keypoints[0]);
+            // std::cout << "fake keypoints 0: " << keypoints[0].pt.x << ", " << keypoints[0].pt.y << std::endl;
+
             img_keypoints = img.clone();
+            // cv::drawKeypoints(img, fake_keypoints, img_keypoints, cv::Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
             cv::drawKeypoints(img, keypoints, img_keypoints, cv::Scalar::all(-1), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
             std::string window_name = DetectorType_str[static_cast<int>(detector_type)] + " Detector Results";
             cv::namedWindow(window_name, 6);
@@ -121,10 +126,10 @@ namespace vloam {
         return descriptors;
     }
 
-    std::vector<cv::DMatch> ImageUtil::matchDescriptors(cv::Mat &desc_source, cv::Mat &desc_ref) {
+    std::vector<cv::DMatch> ImageUtil::matchDescriptors(cv::Mat &descriptors0, cv::Mat &descriptors1) {
 
         std::vector<cv::DMatch> matches;
-        bool crossCheck = false;
+        bool crossCheck = (selector_type == SelectType::NN);
         cv::Ptr<cv::DescriptorMatcher> matcher;
 
         // Reference: https://docs.opencv.org/master/dc/dc3/tutorial_py_matcher.html
@@ -142,9 +147,9 @@ namespace vloam {
             matcher = cv::BFMatcher::create(normType, crossCheck);
         }
         else if (matcher_type == MatcherType::FLANN) {
-            if (desc_source.type() != CV_32F) { // OpenCV bug workaround : convert binary descriptors to floating point due to a bug in current OpenCV implementation
-                desc_source.convertTo(desc_source, CV_32F);
-                desc_ref.convertTo(desc_ref, CV_32F);
+            if (descriptors0.type() != CV_32F) { // OpenCV bug workaround : convert binary descriptors to floating point due to a bug in current OpenCV implementation
+                descriptors0.convertTo(descriptors0, CV_32F);
+                descriptors1.convertTo(descriptors1, CV_32F);
             }
 
             matcher = cv::DescriptorMatcher::create(cv::DescriptorMatcher::FLANNBASED);
@@ -155,7 +160,7 @@ namespace vloam {
             time = (double)cv::getTickCount();
 
         if (selector_type == SelectType::NN) {
-            matcher->match(desc_source, desc_ref, matches);
+            matcher->match(descriptors0, descriptors1, matches);
 
             if (print_result) {
                 time = ((double)cv::getTickCount() - time) / cv::getTickFrequency();
@@ -166,7 +171,7 @@ namespace vloam {
             // double t = (double)cv::getTickCount();
         
             std::vector<std::vector<cv::DMatch>> knn_matches;
-            matcher->knnMatch( desc_source, desc_ref, knn_matches, 2 );
+            matcher->knnMatch(descriptors0, descriptors1, knn_matches, 2 );
             for (const auto& knn_match:knn_matches) {
                 if (knn_match[0].distance < 0.8*knn_match[1].distance) {
                     matches.push_back(knn_match[0]);
@@ -186,16 +191,35 @@ namespace vloam {
         return matches;
     }
 
-    void ImageUtil::visualizeMatches(const cv::Mat &image0, const cv::Mat &image1, const std::vector<cv::KeyPoint> &keypoints0, const std::vector<cv::KeyPoint> &keypoints1, const std::vector<cv::DMatch>& matches) {
+    void ImageUtil::visualizeMatchesCallBack(int event, int x, int y) {
+        if  ( event == cv::EVENT_LBUTTONDOWN ) {
+            std::cout << "Left button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
+        }
+    }
+
+    void visualizeMatchesOnMouse(int ev, int x, int y, int, void* obj) {
+        ImageUtil* iu = static_cast<ImageUtil*>(obj);
+        if (iu)
+            iu->visualizeMatchesCallBack(ev, x, y);
+    }
+
+    void ImageUtil::visualizeMatches(const cv::Mat &image0, const cv::Mat &image1, const std::vector<cv::KeyPoint> &keypoints0, const std::vector<cv::KeyPoint> &keypoints1, const std::vector<cv::DMatch>& matches, const int stride) {
+        std::vector<cv::DMatch> matches_dnsp;
+
+        for (int i=0; i<matches.size(); i+=stride) {
+            matches_dnsp.push_back(matches[i]);
+        }
+
         cv::Mat matchImg = image1.clone();
         cv::drawMatches(image0, keypoints0,
                         image1, keypoints1,
-                        matches, matchImg,
+                        matches_dnsp, matchImg,
                         cv::Scalar::all(-1), cv::Scalar::all(-1),
                         std::vector<char>(), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 
         std::string windowName = "Matching keypoints between two camera images";
         cv::namedWindow(windowName, 7);
+        cv::setMouseCallback(windowName, visualizeMatchesOnMouse, this);
         cv::imshow(windowName, matchImg);
         std::cout << "Press key to continue to next image" << std::endl;
         cv::waitKey(0); // wait for key to be pressed

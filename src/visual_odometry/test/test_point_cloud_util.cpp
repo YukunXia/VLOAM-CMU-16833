@@ -18,8 +18,11 @@ int main (int argc, char** argv) {
     point_cloud_util.loadPointCloud(bin_file_path);
     point_cloud_util.projectPointCloud();
     point_cloud_util.downsamplePointCloud();
-    point_cloud_util.visualizePointCloud(image_file_path);
+    // point_cloud_util.visualizePointCloud(image_file_path);
     point_cloud_util.visualizeDepth(image_file_path);
+
+    // std::cout << point_cloud_util.queryDepth(969.0f, 325.0f) << std::endl;
+    // std::cout << point_cloud_util.queryDepth(1100.0f, 300.0f) << std::endl;
 
     return 0;
 }
