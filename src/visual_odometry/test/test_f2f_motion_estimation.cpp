@@ -155,6 +155,53 @@ struct CostFunctor23 {  // 23 means 2d - 3d observation pair
     // TODO: check if the repeated creations of cost functions will decreases the performance?
 };
 
+struct CostFunctor22 {  // 22 means 2d - 2d observation pair
+    CostFunctor22(double observed_x0_bar, double observed_y0_bar, double observed_x1_bar, double observed_y1_bar) : // TODO: check if const & is necessary
+        observed_x0_bar(observed_x0_bar), observed_y0_bar(observed_y0_bar), // 2
+        observed_x1_bar(observed_x1_bar), observed_y1_bar(observed_y1_bar) {} // 2
+
+    template <typename T>
+    bool operator()(const T* const angles, const T* const t, T* residuals) const {
+        T observed_x0_bar_T = T(observed_x0_bar);
+        T observed_y0_bar_T = T(observed_y0_bar);
+        T observed_x1_bar_T = T(observed_x1_bar);
+        T observed_y1_bar_T = T(observed_y1_bar);
+
+        T R[9];
+        ceres::AngleAxisToRotationMatrix(angles, R);
+
+        T x1_bar_dot_skew_t[3] = {
+            -observed_y1_bar_T*t[2] + t[1], 
+             observed_x1_bar_T*t[2] - t[0],
+            -observed_x1_bar_T*t[1] + observed_y1_bar_T*t[0]
+        };
+
+        T x1_bar_dot_skew_t_dot_R[3] = {
+            x1_bar_dot_skew_t[0]*R[0] + x1_bar_dot_skew_t[1]*R[3] + x1_bar_dot_skew_t[2]*R[6],
+            x1_bar_dot_skew_t[0]*R[1] + x1_bar_dot_skew_t[1]*R[4] + x1_bar_dot_skew_t[2]*R[7],
+            x1_bar_dot_skew_t[0]*R[2] + x1_bar_dot_skew_t[1]*R[5] + x1_bar_dot_skew_t[2]*R[8]
+        };
+
+        residuals[0] =  x1_bar_dot_skew_t_dot_R[0]*observed_x0_bar_T + 
+                        x1_bar_dot_skew_t_dot_R[1]*observed_y0_bar_T +
+                        x1_bar_dot_skew_t_dot_R[2];
+
+        return true;
+    }
+    
+    static ceres::CostFunction* Create(const double observed_x0_bar,
+                                       const double observed_y0_bar,
+                                       const double observed_x1_bar,
+                                       const double observed_y1_bar) {
+        return (new ceres::AutoDiffCostFunction<CostFunctor22, 1, 3, 3>(
+            new CostFunctor22(observed_x0_bar, observed_y0_bar, observed_x1_bar, observed_y1_bar)
+        ));
+    }
+
+    double observed_x0_bar, observed_y0_bar, observed_x1_bar, observed_y1_bar;
+    // TODO: check if the repeated creations of cost functions will decreases the performance?
+};
+
 int main (int argc, char** argv) {
     const std::string file_path_prefix = "data/2011_09_26/";
     const std::string calib_cam_to_cam_file_path = file_path_prefix + "calib_cam_to_cam.txt";
@@ -231,7 +278,7 @@ int main (int argc, char** argv) {
     Eigen::Vector3f point_3d_image0_1;
     Eigen::Vector3f point_3d_rect0_0;
     Eigen::Vector3f point_3d_rect0_1;
-    int counter33 = 0, counter32 = 0, counter23 = 0;
+    int counter33 = 0, counter32 = 0, counter23 = 0, counter22 = 0;
     for (const auto& match:matches) { // ~ n=1400 matches
         depth0 = point_cloud_util0.queryDepth(keypoints0[match.queryIdx].pt.x, keypoints0[match.queryIdx].pt.y);
         depth1 = point_cloud_util1.queryDepth(keypoints1[match.trainIdx].pt.x, keypoints1[match.trainIdx].pt.y);
@@ -253,7 +300,7 @@ int main (int argc, char** argv) {
                     static_cast<double>(point_3d_rect0_1(1)), 
                     static_cast<double>(point_3d_rect0_1(2))
             );
-            problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(0.2), angles_0to1, t_0to1);
+            problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(0.5), angles_0to1, t_0to1);
             ++counter33;
         }
         else if (depth0 > 0 and depth1 <= 0) {
@@ -269,7 +316,7 @@ int main (int argc, char** argv) {
                     static_cast<double>(keypoints1[match.trainIdx].pt.x * 2.0) / static_cast<double>(point_cloud_util1.IMG_WIDTH), // normalize xbar ybar to have mean value = 1
                     static_cast<double>(keypoints1[match.trainIdx].pt.y * 2.0) / static_cast<double>(point_cloud_util1.IMG_HEIGHT)
             );
-            problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(0.2), angles_0to1, t_0to1);
+            problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(0.5), angles_0to1, t_0to1);
             ++counter32;
         }
         else if (depth0 <= 0 and depth1 > 0) {
@@ -285,18 +332,32 @@ int main (int argc, char** argv) {
                     static_cast<double>(point_3d_rect0_1(1)), 
                     static_cast<double>(point_3d_rect0_1(2))
             );
-            problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(0.2), angles_0to1, t_0to1);
+            problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(0.5), angles_0to1, t_0to1);
             ++counter23;
+        }
+        else {
+            ceres::CostFunction* cost_function = CostFunctor22::Create(
+                    static_cast<double>(keypoints0[match.queryIdx].pt.x * 2.0) / static_cast<double>(point_cloud_util1.IMG_WIDTH), // normalize xbar ybar to have mean value = 1
+                    static_cast<double>(keypoints0[match.queryIdx].pt.y * 2.0) / static_cast<double>(point_cloud_util1.IMG_HEIGHT),
+                    static_cast<double>(keypoints1[match.trainIdx].pt.x * 2.0) / static_cast<double>(point_cloud_util1.IMG_WIDTH), // normalize xbar ybar to have mean value = 1
+                    static_cast<double>(keypoints1[match.trainIdx].pt.y * 2.0) / static_cast<double>(point_cloud_util1.IMG_HEIGHT)
+            );
+            problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(0.5), angles_0to1, t_0to1);
+            ++counter22;
         }
     }
 
-    std::cout << "Num of known depth to known depth matching = " << counter33 << ", num of known depth to unknown depth matching = " << counter32 << ", num of unknown depth to known depth matching = " << counter23 << "\n" << std::endl;
+    std::cout   <<   "Num of 3d to 2d matching = " << counter33 
+                << "\nnum of 3d to 2d matching = " << counter32 
+                << "\nnum of 2d to 3d matching = " << counter23 
+                << "\nnum of 2d to 2d matching = " << counter22 
+                << "\n" << std::endl;
 
     ceres::Solver::Options options;
     options.max_num_iterations = 100;
     options.linear_solver_type = ceres::DENSE_QR; // TODO: check the best solver
     // Reference: http://ceres-solver.org/nnls_solving.html#linearsolver. For small problems (a couple of hundred parameters and a few thousand residuals) with relatively dense Jacobians, DENSE_QR is the method of choice
-    // Our case, residual num is <1000, and num of param is only 6
+    // Our case, residual num is 1000~2000, but num of param is only 6
     // options.minimizer_progress_to_stdout = true;
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
