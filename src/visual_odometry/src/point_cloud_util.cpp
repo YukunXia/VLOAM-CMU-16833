@@ -301,6 +301,7 @@ namespace vloam {
             return n1(3) < n2(3);
         });
 
+        // // Condition to be satisfied:  point x,y should be inside of the n0, n1 and n2 triangle
         // Eigen::Vector2f n0to1 = neighbors[1].head(2) - neighbors[0].head(2);
         // Eigen::Vector2f n0to2 = neighbors[2].head(2) - neighbors[0].head(2);
         // Eigen::Vector2f n0toP;
