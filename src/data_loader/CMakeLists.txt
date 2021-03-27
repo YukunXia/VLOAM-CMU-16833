@@ -129,6 +129,7 @@ catkin_package(
 include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -158,7 +159,7 @@ add_dependencies(load_small_dataset ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(load_small_dataset
-  ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES} ${OpenCV_LIBS}
 )
 
 #############
