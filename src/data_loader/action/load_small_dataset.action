@@ -1,0 +1,9 @@
+# Define the goal
+string date
+string seq
+---
+# Define the result
+bool loading_finished
+---
+# Define a feedback message
+float32 loading_completion_percent
