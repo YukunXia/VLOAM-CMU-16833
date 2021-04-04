@@ -51,6 +51,12 @@ Hello world file then returns me the following results
 
 # Kitti
 
+## Data in ROS BAG version
+
+Data converted to ROS BAG can be downloaded from [google drive](https://drive.google.com/file/d/10sL8vtnFmASyim9wnnbbHZS5R4z2QEEF/view?usp=sharing)
+
+Right now it contains `2011_09_26_drive_{0001, 0002, 0005}`. 
+
 ## raw data usage
 
 Reference: http://www.cvlibs.net/datasets/kitti/raw_data.php
