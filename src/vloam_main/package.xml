@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>data_loader</name>
+  <name>vloam_main</name>
   <version>0.0.0</version>
-  <description>The data_loader package</description>
+  <description>The vloam_main package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
@@ -19,7 +19,7 @@
   <!-- Url tags are optional, but multiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/data_loader</url> -->
+  <!-- <url type="website">http://wiki.ros.org/vloam_main</url> -->
 
 
   <!-- Author tags are optional, multiple are allowed, one per tag -->
@@ -52,23 +52,35 @@
   <build_depend>cv_bridge</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>sensor_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>tf2_ros</build_depend>
+  <!-- <build_depend>tf2_msgs</build_depend> -->
   <build_depend>std_msgs</build_depend>
-  <build_depend>pcl_ros</build_depend>
+  <build_depend>message_filters</build_depend>
+  <!-- <build_depend>pcl_ros</build_depend> -->
   <build_depend>pcl</build_depend>
   <build_depend>pcl_conversions</build_depend>
+  <build_depend>actionlib</build_depend>
   <build_depend>actionlib_msgs</build_depend>
+  <build_depend>visual_odometry</build_depend>
   <build_export_depend>cv_bridge</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
-  <build_export_depend>sensor_msgs</build_export_depend>
+  <!-- <build_export_depend>sensor_msgs</build_export_depend> -->
   <build_export_depend>std_msgs</build_export_depend>
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>roscpp</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <!-- <exec_depend>tf2_msgs</exec_depend> -->
   <exec_depend>std_msgs</exec_depend>
-  <exec_depend>pcl_ros</exec_depend>
+  <exec_depend>message_filters</exec_depend>
+  <!-- <exec_depend>pcl_ros</exec_depend> -->
   <exec_depend>pcl</exec_depend>
   <exec_depend>pcl_conversions</exec_depend>
+  <exec_depend>actionlib</exec_depend>
   <exec_depend>actionlib_msgs</exec_depend>
+  <exec_depend>visual_odometry</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

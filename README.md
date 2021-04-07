@@ -13,10 +13,8 @@ Note: current dataloader only support "synced" type dataset.
 
 # To-Do-List
 
-- Load transformations/calibrations from ROS, and set as ROS parameters
 - Add code to point cloud util to receive the transformations from ROS
-- Add code to convert ROS image to cv::Mat
-- Add code to convert ROS PointCloud2 to Eigen MatrixXd
-- Run VO continuously
+- Add code to point cloud util to convert ROS PointCloud2 to Eigen MatrixXd
 - Publish odom from VO
 - Visualize odom from VO
+- Refactor and optimize VO (Maybe combine image_util and point_cloud_util into one class, and depth are directly assigned to the feature)

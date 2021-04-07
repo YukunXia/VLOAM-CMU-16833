@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(visual_odometry)
 
-set(Ceres_DIR "/usr/local/lib/cmake/Ceres/")
-
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++14 -O3)
 # TODO: check if -O3 is needed -> Yes, Preprocessing 2 frames took 1000ms without -O3, but now takes 63ms with -O3 
@@ -11,8 +9,8 @@ add_compile_options(-std=c++14 -O3)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(OpenCV 4.5.1 REQUIRED)
-
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(Ceres REQUIRED PATHS "/usr/local/lib/cmake/Ceres/")
 
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
@@ -20,7 +18,6 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   roslib
-  Ceres
 )
 
 ## System dependencies are found with CMake's conventions
@@ -113,7 +110,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+ INCLUDE_DIRS include
 #  LIBRARIES visual_odometry
  CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs
 #  DEPENDS system_lib

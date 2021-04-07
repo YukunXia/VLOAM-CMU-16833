@@ -68,4 +68,4 @@ package.json
 
 # Data
 data/
-src/data_loader/bags
+src/vloam_main/bags

@@ -411,4 +411,43 @@ namespace vloam {
         // cv::imwrite(ros::package::getPath("visual_odometry") + "/figures/gray_image_with_depth_3nn_plane.png", image2);
         cv::waitKey(0); // wait for key to be pressed
     }
+
+    void PointCloudUtil::visualizeDepth(cv::Mat gray_image) {
+        image_with_depth = gray_image.clone();
+        cv::cvtColor(image_with_depth, image_with_depth, cv::COLOR_GRAY2BGR);
+        int x, y;
+        float depth, depth_min = 0.1f, depth_max = 50.0f, ratio;    
+        for (x=0; x<IMG_WIDTH; x+=3) { // += 3 to make the visualization sparse
+            for (y=0; y<IMG_HEIGHT; y+=3) {
+                depth = PointCloudUtil::queryDepth(static_cast<float>(x), static_cast<float>(y));
+                if (depth > 0) {
+                    ratio = std::max(std::min((depth-depth_min)/(depth_max-depth_min), 1.0f), 0.0f);
+                    if (ratio < 0.5) {
+                        cv::circle(
+                            image_with_depth, 
+                            cv::Point(x, y), // x, y
+                            1,
+                            cv::Scalar(0, 255*ratio*2, 255*(1-ratio*2)),
+                            cv::FILLED,
+                            cv::LINE_8
+                        );
+                    }
+                    else {
+                        cv::circle(
+                            image_with_depth, 
+                            cv::Point(x, y),
+                            1,
+                            cv::Scalar(255*(ratio-0.5)*2, 255*(1-(ratio-0.5)*2), 0),
+                            cv::FILLED,
+                            cv::LINE_8
+                        );
+                    }
+                }
+            }
+        }
+
+        cv::namedWindow("Display Kitti Sample Image With Depth Estimation", cv::WINDOW_AUTOSIZE);
+        cv::imshow("Display Kitti Sample Image With Depth Estimation", image_with_depth);
+        cv::waitKey(1); // wait for 1ms
+    }
 }

@@ -31,13 +31,14 @@ namespace vloam {
             float queryDepth(const float x, const float y, const int searching_radius = 2) const;
             void visualizeDepthCallBack(int event, int x, int y);
             void visualizeDepth(const std::string image_file_path);
+            void visualizeDepth(cv::Mat gray_image);
     
         // private:
             const int IMG_HEIGHT = 375;
             const int IMG_WIDTH = 1242;
-            Eigen::Matrix4f T_velo_cam;
-            Eigen::Matrix4f T_cam_rect0;
-            Eigen::MatrixXf P_rect0;
+            Eigen::Matrix4f T_velo_cam; // T_velo^cam or cam_T_velo // TODO: rewrite related functions using Eigen::isometry or Eigen::Transforma; https://eigen.tuxfamily.org/dox/classEigen_1_1Transform.html
+            Eigen::Matrix4f T_cam_rect0; // T_cam0^rect0 or rect0_T_cam0 // NOTE: typedef Transform<float,3,Isometry> Isometry3f
+            Eigen::MatrixXf P_rect0; // TODO: combine the 3 transformations into 1 3x4 matrix
 
             Eigen::MatrixXf point_cloud_3d_tilde; // row size is dynamic, and will be decided when load the point cloud; column size is fixed as 4
             Eigen::MatrixXf point_cloud_2d;

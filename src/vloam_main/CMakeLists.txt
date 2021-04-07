@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(data_loader)
+project(vloam_main)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++14 -O3)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -10,19 +10,31 @@ project(data_loader)
 
 find_package(OpenCV 4.5.1 REQUIRED)
 
-find_package(PCL 1.2 REQUIRED)
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
+find_package(PCL 1.2 REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
+find_package(Ceres REQUIRED PATHS "/usr/local/lib/cmake/Ceres/")
+
+
 find_package(catkin REQUIRED COMPONENTS
-  cv_bridge
   roscpp
-  sensor_msgs
   std_msgs
-  pcl_ros
+  cv_bridge
+  sensor_msgs
+  geometry_msgs
+  tf2_ros
+  # tf2_msgs
+  message_filters
+  # pcl_ros
   pcl_conversions
+  actionlib
+  genmsg
+  actionlib_msgs
+  visual_odometry
 )
 
 ## System dependencies are found with CMake's conventions
@@ -75,13 +87,13 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate actions in the 'action' folder
 add_action_files(
   FILES
-  load_small_dataset.action
+  vloam_main.action
 )
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
-  sensor_msgs std_msgs actionlib_msgs
+  std_msgs actionlib_msgs
 )
 
 ################################################
@@ -115,7 +127,7 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES data_loader
+#  LIBRARIES vloam_main
 #  CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs
 #  DEPENDS system_lib
 )
@@ -134,7 +146,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/data_loader.cpp
+#   src/${PROJECT_NAME}/vloam_main.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -145,7 +157,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(load_small_dataset src/load_small_dataset.cpp)
+add_executable(vloam_main src/vloam_main.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -155,11 +167,11 @@ add_executable(load_small_dataset src/load_small_dataset.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(load_small_dataset ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(vloam_main ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(load_small_dataset
-  ${catkin_LIBRARIES} ${OpenCV_LIBS}
+target_link_libraries(vloam_main
+  ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} Eigen3::Eigen ${CERES_LIBRARIES} image_util point_cloud_util
 )
 
 #############
@@ -209,7 +221,7 @@ target_link_libraries(load_small_dataset
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_data_loader.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_vloam_main.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
