@@ -418,7 +418,7 @@ void visualizeDepth(const Eigen::MatrixXf& bucket_x, const Eigen::MatrixXf& buck
 
     cv::namedWindow("Display Kitti Sample Image With Depth Estimation", cv::WINDOW_AUTOSIZE);
     cv::imshow("Display Kitti Sample Image With Depth Estimation", image2);
-    cv::imwrite(ros::package::getPath("visual_odometry") + "/figures/gray_image_with_depth_3nn_plane.png", image2);
+    cv::imwrite(ros::package::getPath("visual_odometry") + "/figures/gray_image_with_depth_test.png", image2);
     cv::waitKey(0); // wait for key to be pressed
 }
 

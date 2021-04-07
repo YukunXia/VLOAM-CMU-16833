@@ -1,15 +1,12 @@
 #include <string>
 #include <sstream>
-#include <fstream>
+// #include <fstream>
 #include <iostream>
+#include <cstdlib>
 
 #include <ros/ros.h>
-#include <pcl_ros/point_cloud.h>
-#include <pcl/point_types.h>
-#include <pcl_conversions/pcl_conversions.h>
+#include "ros/package.h"
 #include <actionlib/server/simple_action_server.h>
-#include <sensor_msgs/Image.h>
-#include <cv_bridge/cv_bridge.h>
 
 #include <data_loader/load_small_datasetAction.h>
 #include <data_loader/load_small_datasetFeedback.h>
@@ -21,112 +18,23 @@ typedef actionlib::SimpleActionServer<data_loader::load_small_datasetAction> Ser
 data_loader::load_small_datasetFeedback feedback;
 data_loader::load_small_datasetResult result;
 
-// std::string date, seq;
-std::string pwd_prefix;
-std::string file_path_prefix;
-std::string calib_cam_to_cam_file_path;
-std::string calib_velo_to_cam_file_path;
-std::string bin_file_prefix;
-std::string image_file_prefix;
-std::string timestamps_file_path;
+
+std::string seq, cmd;
 std::ostringstream ss;
-
-ros::Publisher pub_point_cloud;
-pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud_msg;
-ros::Publisher pub_image; // TODO: can be optimized by http://wiki.ros.org/image_transport
-cv::Mat image;
-sensor_msgs::Image::Ptr image_msg;
-
-void getDataPath(const std::string& date, std::string seq) {
-    ss.clear(); ss.str("");
-    ss << std::setw(4) << std::setfill('0') << seq;
-    seq = std::string(ss.str());
-
-    file_path_prefix = pwd_prefix + "data/" + date + "/";
-    calib_cam_to_cam_file_path = file_path_prefix + "calib_cam_to_cam.txt";
-    calib_velo_to_cam_file_path = file_path_prefix + "calib_velo_to_cam.txt";
-    timestamps_file_path = file_path_prefix + date + "_drive_" + seq + "_sync/" + "image_00/timestamps.txt";
-    bin_file_prefix = file_path_prefix + date + "_drive_" + seq + "_sync/" + "velodyne_points/data/";
-    image_file_prefix = file_path_prefix + date + "_drive_" + seq + "_sync/" + "image_00/data/";
-}
-
-int getDataLength() {
-    int data_length = 0;
-
-    std::string line;
-    std::ifstream time_stamp_file(timestamps_file_path);
-
-    if(time_stamp_file.is_open()) {
-        while(!time_stamp_file.eof()){
-            getline(time_stamp_file,line);
-            if (line.size() > 0)
-                ++data_length;
-        }
-        time_stamp_file.close();
-    }
-    else {
-        std::cerr << "file `" << timestamps_file_path << "` is not valid" << std::endl;
-        exit(EXIT_FAILURE);
-    }
-    std::cout << "This dataset has " << data_length << " pieces of data\n" << std::endl;
-
-    return data_length;
-}
-
-void loadPointCloud(const std::string bin_file_path) {
-    int32_t num = 1000000; // about 10 times larger than the real point cloud size
-    float *data = (float*)malloc(num*sizeof(float));
-
-    // pointers
-    float *px = data+0;
-    float *py = data+1;
-    float *pz = data+2;
-
-    // load point cloud
-    FILE *stream;
-    stream = fopen(bin_file_path.c_str(), "rb");
-    num = fread(data,sizeof(float), num, stream)/4;
-    point_cloud_msg->clear();
-    point_cloud_msg->width = 1;
-    point_cloud_msg->height = num;
-    point_cloud_msg->reserve(num);
-    // std::cout << num << std::endl;
-    for (int32_t i=0; i<num; i++) {
-        point_cloud_msg->push_back(pcl::PointXYZ(*px, *py, *pz));
-        px+=4; py+=4; pz+=4;
-    }
-
-    fclose(stream);
-    free(data);
-}
-
-void loadImage(const std::string image_file_path) {
-    image = cv::imread(image_file_path, cv::IMREAD_GRAYSCALE);
-    image_msg = cv_bridge::CvImage(std_msgs::Header(), "mono8", image).toImageMsg();
-}
 
 void execute(const data_loader::load_small_datasetGoalConstPtr& goal, Server* as) {
     result.loading_finished = false;
-    
-    getDataPath(goal->date, goal->seq);
-    int data_length = getDataLength();
-    
-    int i=0;
-    ros::Rate lr(10);
-    for (i=0; i<data_length; ++i) {
-        ss.clear(); ss.str("");
-        ss << std::setw(10) << std::setfill('0') << i;
-        loadPointCloud(bin_file_prefix + std::string(ss.str()) + ".bin");
-        loadImage(image_file_prefix + std::string(ss.str()) + ".png");
 
-        pcl_conversions::toPCL(ros::Time::now(), point_cloud_msg->header.stamp);
-        pub_point_cloud.publish(point_cloud_msg);
-        pub_image.publish(image_msg);
-        
-        feedback.loading_completion_percent = static_cast<float>(i)/static_cast<float>(data_length-1);
-        as->publishFeedback(feedback);
-        lr.sleep();
-    }
+    ss.clear(); ss.str("");
+    ss << std::setw(4) << std::setfill('0') << goal->seq;
+    seq = std::string(ss.str());
+    cmd = "rosbag play " + ros::package::getPath("data_loader") + "/bags/kitti_" + goal->date + "_drive_" + seq + "_synced.bag"; 
+    // TODO: add one more entry of goal for different dataset type: 
+    // In kitti2bag, kitti_types = ["raw_synced", "odom_color", "odom_gray"]
+    // https://github.com/tomas789/kitti2bag/blob/bf0d46c49a77f5d5500621934ccd617d18cf776b/kitti2bag/kitti2bag.py#L264
+    ROS_INFO("The command is %s", cmd.c_str());
+    system(cmd.c_str());
+
 
     result.loading_finished = true;
     as->setSucceeded(result);
@@ -136,20 +44,7 @@ int main(int argc, char** argv) {
 
     ros::init(argc, argv, "load_small_dataset");
 
-    point_cloud_msg = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>);
-    point_cloud_msg->header.frame_id = "velodyne";
-
-    ros::NodeHandle nh_private = ros::NodeHandle("~");
-    if (nh_private.hasParam("pwd_prefix")) {
-        nh_private.getParam("pwd_prefix", pwd_prefix);
-    }
-    else {
-        pwd_prefix = "";
-    }
-
     ros::NodeHandle nh;
-    pub_image = nh.advertise<sensor_msgs::Image>("/kitti_small/image_00" ,5);
-    pub_point_cloud = nh.advertise<pcl::PointCloud<pcl::PointXYZ>>("/kitti_small/point_cloud" ,5);
 
     Server server(nh, "load_small_dataset_action_server", boost::bind(&execute, _1, &server), false);
     server.start();

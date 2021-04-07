@@ -68,3 +68,4 @@ package.json
 
 # Data
 data/
+src/data_loader/bags

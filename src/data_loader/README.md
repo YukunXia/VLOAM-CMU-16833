@@ -1,3 +1,8 @@
+# Prerequisites
+
+OpenCV 4.5.1
+PCL 1.2
+
 # Usage 1
 
 - Before running, change the `pwd_fix` from catkin_ws path
