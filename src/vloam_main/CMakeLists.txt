@@ -26,11 +26,14 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   sensor_msgs
   geometry_msgs
+  # tf2
   tf2_ros
+  tf2_geometry_msgs
   # tf2_msgs
   message_filters
   # pcl_ros
   pcl_conversions
+  nav_msgs
   actionlib
   genmsg
   actionlib_msgs

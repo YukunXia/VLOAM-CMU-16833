@@ -27,7 +27,7 @@ namespace vloam {
                     curr = line.substr(start, end - start);
                     value = boost::lexical_cast<float>(line.substr(start, end - start));
                     // std::cout << value << ", "; 
-                    T_velo_cam(index/3, index%3) = value;
+                    cam_T_velo(index/3, index%3) = value;
                     ++index;
                 }
             }
@@ -39,15 +39,15 @@ namespace vloam {
                     curr = line.substr(start, end - start);
                     value = boost::lexical_cast<float>(line.substr(start, end - start));
                     // std::cout << value << ", "; 
-                    T_velo_cam(index, 3) = value;
+                    cam_T_velo(index, 3) = value;
                     ++index;
                 }
             }
         }
-        T_velo_cam(3,3) = 1;
+        cam_T_velo(3,3) = 1;
 
         if (print_result)
-            std::cout << "T_velo_cam = \n" << T_velo_cam << "\n" << std::endl;
+            std::cout << "cam_T_velo = \n" << cam_T_velo << "\n" << std::endl;
 
         std::fstream input2(calib_cam_to_cam_file_path.c_str(), std::ios::in);
         if(!input2.good()){
@@ -71,10 +71,10 @@ namespace vloam {
                     curr = line.substr(start, end - start);
                     value = boost::lexical_cast<float>(line.substr(start, end - start));
                     // std::cout << value << ", "; 
-                    T_cam_rect0(index/3, index%3) = value;
+                    rect0_T_cam(index/3, index%3) = value;
                     ++index;
                 }
-                T_cam_rect0(3,3) = 1;
+                rect0_T_cam(3,3) = 1;
             }
             if (curr == "P_rect_00:") {
                 int index = 0;
@@ -91,7 +91,7 @@ namespace vloam {
         }
 
         if (print_result) {
-            std::cout << "T_cam_rect0 = \n" << T_cam_rect0 << "\n" << std::endl;
+            std::cout << "rect0_T_cam = \n" << rect0_T_cam << "\n" << std::endl;
             std::cout << "P_rect0 = \n" << P_rect0 << "\n" << std::endl;
         }
         
@@ -127,7 +127,7 @@ namespace vloam {
 
     void PointCloudUtil::projectPointCloud() {
         // Projection
-        Eigen::MatrixXf point_cloud_3d = point_cloud_3d_tilde * T_velo_cam.transpose() * T_cam_rect0.transpose() * P_rect0.transpose(); // shape = point_cloud_3d_tilde.rows(), 3; in rect cam0 coordinate; last column is the depth
+        Eigen::MatrixXf point_cloud_3d = point_cloud_3d_tilde * cam_T_velo.transpose() * rect0_T_cam.transpose() * P_rect0.transpose(); // shape = point_cloud_3d_tilde.rows(), 3; in rect cam0 coordinate; last column is the depth
 
         // Screen out back points
         Eigen::VectorXi select_front = (point_cloud_3d.col(2).array() > 0.1).cast<int>(); // depth should not just be positive, but greater than a threshold

@@ -7,7 +7,7 @@ PCL 1.2
 
 # Data format
 
-Place bag files under "src/data_loader/bags/"
+Place bag files under "src/vloam_main/bags/"
 
 Note: current dataloader only support "synced" type dataset. 
 
@@ -15,6 +15,4 @@ Note: current dataloader only support "synced" type dataset.
 
 - Add code to point cloud util to receive the transformations from ROS
 - Add code to point cloud util to convert ROS PointCloud2 to Eigen MatrixXd
-- Publish odom from VO
-- Visualize odom from VO
 - Refactor and optimize VO (Maybe combine image_util and point_cloud_util into one class, and depth are directly assigned to the feature)

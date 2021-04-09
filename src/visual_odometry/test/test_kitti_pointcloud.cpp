@@ -25,7 +25,7 @@ const std::string image_file_path = file_path_prefix + "2011_09_26_drive_0001_sy
 const int IMG_HEIGHT = 375;
 const int IMG_WIDTH = 1242;
 
-void loadTransformations(Eigen::Matrix4f& T_velo_cam, Eigen::Matrix4f& T_cam_rect0, Eigen::MatrixXf& P_rect0) {
+void loadTransformations(Eigen::Matrix4f& cam_T_velo, Eigen::Matrix4f& rect0_T_cam, Eigen::MatrixXf& P_rect0) {
     std::string line;
     std::string delim = " ";
     float value;
@@ -51,7 +51,7 @@ void loadTransformations(Eigen::Matrix4f& T_velo_cam, Eigen::Matrix4f& T_cam_rec
                 curr = line.substr(start, end - start);
                 value = boost::lexical_cast<float>(line.substr(start, end - start));
                 // std::cout << value << ", "; 
-                T_velo_cam(index/3, index%3) = value;
+                cam_T_velo(index/3, index%3) = value;
                 ++index;
             }
         }
@@ -63,13 +63,13 @@ void loadTransformations(Eigen::Matrix4f& T_velo_cam, Eigen::Matrix4f& T_cam_rec
                 curr = line.substr(start, end - start);
                 value = boost::lexical_cast<float>(line.substr(start, end - start));
                 // std::cout << value << ", "; 
-                T_velo_cam(index, 3) = value;
+                cam_T_velo(index, 3) = value;
                 ++index;
             }
         }
     }
-    T_velo_cam(3,3) = 1;
-    std::cout << "T_velo_cam = \n" << T_velo_cam << "\n" << std::endl;
+    cam_T_velo(3,3) = 1;
+    std::cout << "cam_T_velo = \n" << cam_T_velo << "\n" << std::endl;
 
     std::fstream input2(calib_cam_to_cam_file_path.c_str(), std::ios::in);
     if(!input2.good()){
@@ -91,10 +91,10 @@ void loadTransformations(Eigen::Matrix4f& T_velo_cam, Eigen::Matrix4f& T_cam_rec
                 curr = line.substr(start, end - start);
                 value = boost::lexical_cast<float>(line.substr(start, end - start));
                 // std::cout << value << ", "; 
-                T_cam_rect0(index/3, index%3) = value;
+                rect0_T_cam(index/3, index%3) = value;
                 ++index;
             }
-            T_cam_rect0(3,3) = 1;
+            rect0_T_cam(3,3) = 1;
         }
         if (curr == "P_rect_00:") {
             int index = 0;
@@ -110,7 +110,7 @@ void loadTransformations(Eigen::Matrix4f& T_velo_cam, Eigen::Matrix4f& T_cam_rec
         }
     }
 
-    std::cout << "T_cam_rect0 = \n" << T_cam_rect0 << "\n" << std::endl;
+    std::cout << "rect0_T_cam = \n" << rect0_T_cam << "\n" << std::endl;
     std::cout << "P_rect0 = \n" << P_rect0 << "\n" << std::endl;
     
     input1.close(); 
@@ -189,9 +189,9 @@ void loadPointCloud(Eigen::MatrixXf& point_cloud_3d_tilde) {
     free(data);
 }
 
-void projectPointCloud(const Eigen::MatrixXf& point_cloud_3d_tilde, const Eigen::Matrix4f& T_velo_cam, const Eigen::Matrix4f& T_cam_rect0, const Eigen::MatrixXf& P_rect0, Eigen::MatrixXf& point_cloud_2d) {
+void projectPointCloud(const Eigen::MatrixXf& point_cloud_3d_tilde, const Eigen::Matrix4f& cam_T_velo, const Eigen::Matrix4f& rect0_T_cam, const Eigen::MatrixXf& P_rect0, Eigen::MatrixXf& point_cloud_2d) {
     // Projection
-    Eigen::MatrixXf point_cloud_3d = point_cloud_3d_tilde * T_velo_cam.transpose() * T_cam_rect0.transpose() * P_rect0.transpose(); // shape = point_cloud_3d_tilde.rows(), 3; in rect cam0 coordinate; last column is the depth
+    Eigen::MatrixXf point_cloud_3d = point_cloud_3d_tilde * cam_T_velo.transpose() * rect0_T_cam.transpose() * P_rect0.transpose(); // shape = point_cloud_3d_tilde.rows(), 3; in rect cam0 coordinate; last column is the depth
 
     // Screen out back points
     Eigen::VectorXi select_front = (point_cloud_3d.col(2).array() > 0.1).cast<int>(); // depth should not just be positive, but greater than a threshold
@@ -429,10 +429,10 @@ int main(int argc, char** argv) {
 
     // Eigen::MatrixXd m;
 
-    Eigen::Matrix4f T_velo_cam = Eigen::Matrix4f::Zero();
-    Eigen::Matrix4f T_cam_rect0 = Eigen::Matrix4f::Zero();
+    Eigen::Matrix4f cam_T_velo = Eigen::Matrix4f::Zero();
+    Eigen::Matrix4f rect0_T_cam = Eigen::Matrix4f::Zero();
     Eigen::MatrixXf P_rect0 = Eigen::MatrixXf::Zero(3, 4);
-    loadTransformations(T_velo_cam, T_cam_rect0, P_rect0);
+    loadTransformations(cam_T_velo, rect0_T_cam, P_rect0);
 
     Eigen::MatrixXf point_cloud_3d_tilde; // row size is dynamic, and will be decided when load the point cloud; column size is fixed as 4
     // std::vector<Eigen::Vector4f> point_cloud_3d_tilde; // TODO: check if Eigen::MatrixXd is better for projection multiplication and kdtree query. Check this: https://github.com/yanii/kitti-pcl/blob/3b4ebfd49912702781b7c5b1cf88a00a8974d944/KITTI_README.TXT#L69
@@ -441,7 +441,7 @@ int main(int argc, char** argv) {
     // std::cout << "first 5 rows are \n" << point_cloud_3d_tilde.topRows(5) << "\n" << std::endl;
 
     Eigen::MatrixXf point_cloud_2d;
-    projectPointCloud(point_cloud_3d_tilde, T_velo_cam, T_cam_rect0, P_rect0, point_cloud_2d);
+    projectPointCloud(point_cloud_3d_tilde, cam_T_velo, rect0_T_cam, P_rect0, point_cloud_2d);
     
     printPointCloud2dStats(point_cloud_2d);
 
