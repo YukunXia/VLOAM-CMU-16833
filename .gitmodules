@@ -1,0 +1,3 @@
+[submodule "KITTI_odometry_evaluation_tool"]
+	path = KITTI_odometry_evaluation_tool
+	url = https://github.com/LeoQLi/KITTI_odometry_evaluation_tool.git
