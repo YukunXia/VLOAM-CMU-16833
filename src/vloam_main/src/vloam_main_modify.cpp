@@ -10,6 +10,8 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
 #include <tf2_ros/transform_listener.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <tf2_eigen/tf2_eigen.h>
@@ -53,6 +55,10 @@ vloam_main::vloam_mainFeedback feedback;
 vloam_main::vloam_mainResult result;
 
 ros::Publisher pub_reset_path;
+ros::Publisher pubvisualOdometry;
+ros::Publisher pubvisualPath;
+
+nav_msgs::Path visualPath;
 
 cv_bridge::CvImagePtr cv_ptr;
 
@@ -78,6 +84,12 @@ Eigen::Vector3f point_3d_image0_1;
 Eigen::Vector3f point_3d_rect0_0;
 Eigen::Vector3f point_3d_rect0_1;
 ros::Publisher pub_point_cloud;
+// modify
+// Eigen::Quaterniond q_wodom_curr(1, 0, 0, 0); // wodom to cam
+// Eigen::Vector3d t_wodom_curr(0, 0, 0); // wodom to cam
+Eigen::Quaterniond q_last_curr(1, 0, 0, 0); // frame 2 frame
+Eigen::Vector3d t_last_curr(0, 0, 0); // frame 2 frame
+
 
 ceres::Solver::Options options;    
 ceres::Solver::Summary summary;
@@ -321,6 +333,30 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
         world_stamped_tf_base.transform = tf2::toMsg(world_T_base_last);
 
         dynamic_broadcaster.sendTransform(world_stamped_tf_base);
+                            // publish odometry
+        
+        nav_msgs::Odometry visualOdometry;
+        visualOdometry.header.frame_id = "/map";
+        visualOdometry.child_frame_id = "/camera_odom";
+        visualOdometry.header.stamp = ros::Time::now();//image_msg->header.stamp;
+        Eigen::Quaterniond q_wodom_curr(world_T_base_last.getRotation()); // wodom to cam
+        Eigen::Vector3d t_wodom_curr(world_T_base_last.getOrigin()); // wodom to cam
+        visualOdometry.pose.pose.orientation.x = q_wodom_curr.x();
+        visualOdometry.pose.pose.orientation.y = q_wodom_curr.y();
+        visualOdometry.pose.pose.orientation.z = q_wodom_curr.z();
+        visualOdometry.pose.pose.orientation.w = q_wodom_curr.w();
+        visualOdometry.pose.pose.position.x = t_wodom_curr.x();
+        visualOdometry.pose.pose.position.y = t_wodom_curr.y();
+        visualOdometry.pose.pose.position.z = t_wodom_curr.z();
+        pubvisualOdometry.publish(visualOdometry);
+
+        geometry_msgs::PoseStamped visualPose;
+        visualPose.header = visualOdometry.header;
+        visualPose.pose = visualOdometry.pose.pose;
+        visualPath.header.stamp = visualOdometry.header.stamp;
+        visualPath.header.frame_id = "/map";
+        visualPath.poses.push_back(visualPose);
+        pubvisualPath.publish(visualPath);
 
         // time = ((double)cv::getTickCount() - time) / cv::getTickFrequency();
         // std::cout << "Preprocessing 1 frames takes " << 1000 * time / 1.0 << " ms" << std::endl;
@@ -371,6 +407,12 @@ int main(int argc, char** argv) {
 
     pub_reset_path = nh.advertise<std_msgs::String>("/syscommand", 5);
     pub_point_cloud = nh.advertise<sensor_msgs::PointCloud2>("/point_cloud_follow_VO", 5);
+
+    pubvisualOdometry = nh.advertise<nav_msgs::Odometry>("/visual_odom_to_init", 100);
+
+    pubvisualPath = nh.advertise<nav_msgs::Path>("/visual_odom_path", 100);
+
+
 
     options.max_num_iterations = 100;
     options.linear_solver_type = ceres::DENSE_QR; // TODO: check the best solver

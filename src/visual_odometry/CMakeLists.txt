@@ -9,7 +9,8 @@ add_compile_options(-std=c++14 -O3)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(OpenCV 4.5.1 REQUIRED)
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+
+# find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(Ceres REQUIRED PATHS "/usr/local/lib/cmake/Ceres/")
 
 find_package(catkin REQUIRED COMPONENTS
@@ -113,6 +114,7 @@ catkin_package(
  INCLUDE_DIRS include
 #  LIBRARIES visual_odometry
  CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs
+ DEPENDS EIGEN3 PCL
 #  DEPENDS system_lib
 )
 

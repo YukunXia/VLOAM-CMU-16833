@@ -6,7 +6,7 @@
 
 #include "ros/package.h"
 
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Dense>
 #include <opencv2/opencv.hpp>
 
 #ifndef POINT_CLOUD_UTIL_H

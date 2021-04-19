@@ -8,9 +8,9 @@ add_compile_options(-std=c++14 -O3)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 
-find_package(OpenCV 4.5.1 REQUIRED)
+find_package(OpenCV 4.5.1 REQUIRED PATHS "/usr/local/lib/opencv4/")
 
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+# find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 find_package(PCL 1.2 REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})
@@ -133,6 +133,7 @@ catkin_package(
 #  LIBRARIES vloam_main
 #  CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs
 #  DEPENDS system_lib
+DEPENDS EIGEN3 PCL
 )
 
 ###########
@@ -161,6 +162,7 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(vloam_main src/vloam_main.cpp)
+add_executable(vloam_main_pose src/vloam_main_modify.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -171,9 +173,13 @@ add_executable(vloam_main src/vloam_main.cpp)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(vloam_main ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(vloam_main_pose ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(vloam_main
+  ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} Eigen3::Eigen ${CERES_LIBRARIES} image_util point_cloud_util
+)
+target_link_libraries(vloam_main_pose
   ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} Eigen3::Eigen ${CERES_LIBRARIES} image_util point_cloud_util
 )
 
