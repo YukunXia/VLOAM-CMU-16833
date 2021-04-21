@@ -10,6 +10,11 @@ add_compile_options(-std=c++14 -O3)
 ## is used, also find other catkin packages
 find_package(OpenCV 4.5.1 REQUIRED)
 
+find_package(PCL 1.2 REQUIRED)
+include_directories(${PCL_INCLUDE_DIRS})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
+
 # find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(Ceres REQUIRED PATHS "/usr/local/lib/cmake/Ceres/")
 
@@ -19,6 +24,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   roslib
+  tf2
 )
 
 ## System dependencies are found with CMake's conventions
@@ -144,6 +150,19 @@ add_library(point_cloud_util SHARED
 )
 target_link_libraries(point_cloud_util ${catkin_LIBRARIES})
 set_target_properties(point_cloud_util PROPERTIES PUBLIC_HEADER include/${PROJECT_NAME}/point_cloud_util.h)
+
+add_library(visual_odometry SHARED
+  src/visual_odometry.cpp
+)
+target_link_libraries(visual_odometry 
+    ${catkin_LIBRARIES}
+    ${OpenCV_LIBS}
+    Eigen3::Eigen
+    ${CERES_LIBRARIES}
+    image_util
+    point_cloud_util
+)
+set_target_properties(visual_odometry PROPERTIES PUBLIC_HEADER include/${PROJECT_NAME}/visual_odometry.h)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries

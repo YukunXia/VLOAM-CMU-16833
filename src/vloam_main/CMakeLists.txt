@@ -177,10 +177,10 @@ add_dependencies(vloam_main_pose ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(vloam_main
-  ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} Eigen3::Eigen ${CERES_LIBRARIES} image_util point_cloud_util
+  ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} Eigen3::Eigen ${CERES_LIBRARIES} image_util point_cloud_util visual_odometry
 )
 target_link_libraries(vloam_main_pose
-  ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} Eigen3::Eigen ${CERES_LIBRARIES} image_util point_cloud_util
+  ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} Eigen3::Eigen ${CERES_LIBRARIES} image_util point_cloud_util 
 )
 
 #############

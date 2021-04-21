@@ -13,6 +13,7 @@
         <param name="source_frame_name" type="string" value="cam0" />
         <param name="trajectory_update_rate" type="double" value="10" />
         <param name="trajectory_publish_rate" type="double" value="10" />
+        <param name="detach_VO_LO" type="bool" value="true" />
     </node>
 
 </launch>

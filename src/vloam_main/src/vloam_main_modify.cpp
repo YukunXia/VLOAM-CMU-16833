@@ -115,6 +115,7 @@ void init() {
     descriptors.clear();
     descriptors.resize(2);
     matches.clear();
+    visualPath.poses.clear();
 
     point_cloud_utils.clear();
     point_cloud_utils.resize(2);

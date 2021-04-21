@@ -29,6 +29,7 @@
 #include <visual_odometry/image_util.h>
 #include <visual_odometry/point_cloud_util.h>
 #include <visual_odometry/ceres_cost_function.h>
+#include <visual_odometry/visual_odometry.h>
 
 #include <vloam_main/vloam_mainAction.h>
 #include <vloam_main/vloam_mainFeedback.h>
@@ -52,35 +53,17 @@ typedef actionlib::SimpleActionServer<vloam_main::vloam_mainAction> Server;
 vloam_main::vloam_mainFeedback feedback;
 vloam_main::vloam_mainResult result;
 
+int count, i, j; // TODO: check if count will overflow
+
 ros::Publisher pub_reset_path;
 
+std::shared_ptr<vloam::VisualOdometry> VO;
 cv_bridge::CvImagePtr cv_ptr;
-
-int count, i, j; // TODO: check if count will overflow
-vloam::ImageUtil image_util;
-std::vector<cv::Mat> images;
-std::vector<std::vector<cv::KeyPoint>> keypoints;
-std::vector<cv::Mat> descriptors;
-std::vector<cv::DMatch> matches;
+pcl::PointCloud<pcl::PointXYZ> point_cloud_pcl;
 
 std::shared_ptr<tf2_ros::Buffer> tf_buffer_ptr;
 geometry_msgs::TransformStamped imu_stamped_tf_velo, imu_stamped_tf_cam0, base_stamped_tf_imu;
 tf2::Transform imu_T_velo, imu_T_cam0, base_T_imu, base_T_cam0, velo_T_cam0;
-
-std::vector<vloam::PointCloudUtil> point_cloud_utils;
-pcl::PointCloud<pcl::PointXYZ> point_cloud_pcl;
-
-float depth0, depth1;
-double angles_0to1[3];
-double t_0to1[3];
-Eigen::Vector3f point_3d_image0_0;
-Eigen::Vector3f point_3d_image0_1;
-Eigen::Vector3f point_3d_rect0_0;
-Eigen::Vector3f point_3d_rect0_1;
-ros::Publisher pub_point_cloud;
-
-ceres::Solver::Options options;    
-ceres::Solver::Summary summary;
 
 std::string seq, cmd;
 std::ostringstream ss;
@@ -88,28 +71,11 @@ std::ostringstream ss;
 float angle;
 geometry_msgs::TransformStamped world_stamped_tf_base; 
 tf2::Transform world_T_base_last, base_last_T_base_curr, cam0_curr_T_cam0_last, velo_last_T_velo_curr;
-tf2::Quaternion cam0_curr_q_cam0_last;
 
 void init() {
     count = 0;
 
-    image_util.print_result = false;
-    image_util.visualize_result = false;
-
-    images.clear();
-    images.resize(2);
-    keypoints.clear();
-    keypoints.resize(2);
-    descriptors.clear();
-    descriptors.resize(2);
-    matches.clear();
-
-    point_cloud_utils.clear();
-    point_cloud_utils.resize(2);
-    point_cloud_utils[0].print_result = false;
-    point_cloud_utils[0].downsample_grid_size = 5;
-    point_cloud_utils[1].print_result = false;
-    point_cloud_utils[1].downsample_grid_size = 5;
+    VO->init();
 
     world_T_base_last.setOrigin(tf2::Vector3(0.0, 0.0, 0.0));
     world_T_base_last.setRotation(tf2::Quaternion(0.0, 0.0, 0.0, 1.0));
@@ -123,16 +89,12 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
     static tf2_ros::TransformBroadcaster dynamic_broadcaster;
 
     i = count%2;
+    VO->setUpVO();
 
     // Section 1: Process Image // takes ~34ms
     cv_ptr = cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::MONO8);
-    images[i] = cv_ptr->image;
-    keypoints[i] = image_util.detKeypoints(images[i]);
-    descriptors[i] = image_util.descKeypoints(keypoints[i], images[i]);
-    if (count > 1)
-        matches = image_util.matchDescriptors(descriptors[1-i], descriptors[i]); // first one is prev image, second one is curr image
+    VO->processImage(cv_ptr->image);
 
-    
     // Section 2: Process Static Transformations and Camera Intrinsics
     if (count == 0) {
         world_stamped_tf_base.header.stamp = ros::Time::now();
@@ -167,21 +129,7 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
         base_T_cam0 = base_T_imu * imu_T_cam0;
         velo_T_cam0 = imu_T_velo.inverse() * imu_T_cam0;
 
-        point_cloud_utils[0].cam_T_velo = imu_eigen_T_cam0.matrix().inverse() * imu_eigen_T_velo.matrix();
-        point_cloud_utils[1].cam_T_velo = imu_eigen_T_cam0.matrix().inverse() * imu_eigen_T_velo.matrix();
-
-        // point from unrectified camera 00 to rectified camera 00
-        for (j=0; j<9; ++j) {
-            point_cloud_utils[0].rect0_T_cam(j/3, j%3) = camera_info_msg->R[j]; // TODO: optimize this code later
-            point_cloud_utils[1].rect0_T_cam(j/3, j%3) = camera_info_msg->R[j]; // assume P doesn't change
-        }
-
-        // point from rectified camera 00 to image coordinate
-        for (j=0; j<12; ++j) {
-            point_cloud_utils[0].P_rect0(j/4, j%4) = camera_info_msg->P[j]; // TODO: optimize this code later
-            point_cloud_utils[1].P_rect0(j/4, j%4) = camera_info_msg->P[j]; // assume P doesn't change
-        }
-        // std::cout << "\nP_rect0 = \n" << point_cloud_utils[0].P_rect0 << std::endl; 
+        VO->setUpPointCloud(imu_eigen_T_cam0, imu_eigen_T_velo, camera_info_msg);
         
         std_msgs::String reset_msg;
         reset_msg.data = "reset";
@@ -192,116 +140,16 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
     // Section 3: Process Point Cloud // takes ~2.6ms
     pcl::fromROSMsg(*point_cloud_msg, point_cloud_pcl); // optimization can be applied if pcl library is not necessarily
     // ROS_INFO("point cloud width=%d, height=%d", point_cloud_pcl.width, point_cloud_pcl.height); // typical output "point cloud width=122270, height=1053676" // TODO: check why height is so large
-    Eigen::MatrixXf point_cloud_3d_tilde = Eigen::MatrixXf::Ones(point_cloud_pcl.size(), 4);
-    for (j=0; j<point_cloud_pcl.size(); ++j) {
-        point_cloud_3d_tilde(j, 0) = point_cloud_pcl.points[j].x;
-        point_cloud_3d_tilde(j, 1) = point_cloud_pcl.points[j].y;
-        point_cloud_3d_tilde(j, 2) = point_cloud_pcl.points[j].z;
-    }
-    point_cloud_utils[i].point_cloud_3d_tilde = point_cloud_3d_tilde;
-    point_cloud_utils[i].projectPointCloud();
-    point_cloud_utils[i].downsamplePointCloud();    
-    if (visualize_depth)
-        point_cloud_utils[i].visualizeDepth(cv_ptr->image); // uncomment this for depth visualization, but remember to reduce the bag playing speed too
-    if (publish_point_cloud) {
-        sensor_msgs::PointCloud2 point_cloud_in_VO_msg = *point_cloud_msg;
-        // ROS_INFO("point cloud frame id was %s", point_cloud_msg->header.frame_id.c_str());
-        point_cloud_in_VO_msg.header.frame_id = "velo";
-        point_cloud_in_VO_msg.header.stamp = ros::Time::now();
-        pub_point_cloud.publish(point_cloud_in_VO_msg);
-    }
+    VO->processPointCloud(point_cloud_msg, point_cloud_pcl, visualize_depth, publish_point_cloud);
     // double time = (double)cv::getTickCount();
     
     if (count > 1) {
-        // Section 4: Solve VO // takes ~11ms
-        ceres::Problem problem;   
 
-        for (j=0; j<3; ++j) {
-            angles_0to1[j] = 0.0;
-            t_0to1[j] = 0.0;
-        }
-        // int counter33 = 0, counter32 = 0, counter23 = 0, counter22 = 0;
-        for (const auto& match:matches) { // ~ n=1400 matches
-            depth0 = point_cloud_utils[1-i].queryDepth(keypoints[1-i][match.queryIdx].pt.x, keypoints[1-i][match.queryIdx].pt.y);
-            depth1 = point_cloud_utils[i].queryDepth(keypoints[i][match.trainIdx].pt.x, keypoints[i][match.trainIdx].pt.y);
-            if (depth0 > 0 and depth1 > 0) {
-                point_3d_image0_0 << keypoints[1-i][match.queryIdx].pt.x*depth0, keypoints[1-i][match.queryIdx].pt.y*depth0, depth0;
-                point_3d_image0_1 << keypoints[i][match.trainIdx].pt.x*depth1, keypoints[i][match.trainIdx].pt.y*depth1, depth1;
-
-                point_3d_rect0_0 = (point_cloud_utils[1-i].P_rect0.leftCols(3)).colPivHouseholderQr().solve(point_3d_image0_0 - point_cloud_utils[1-i].P_rect0.col(3));
-                point_3d_rect0_1 = (point_cloud_utils[i].P_rect0.leftCols(3)).colPivHouseholderQr().solve(point_3d_image0_1 - point_cloud_utils[i].P_rect0.col(3));
-
-                // assert(std::abs(point_3d_rect0_0(2) - depth0) < 0.0001);
-                // assert(std::abs(point_3d_rect0_1(2) - depth1) < 0.0001);
-
-                ceres::CostFunction* cost_function = vloam::CostFunctor33::Create(
-                        static_cast<double>(point_3d_rect0_0(0)), 
-                        static_cast<double>(point_3d_rect0_0(1)), 
-                        static_cast<double>(point_3d_rect0_0(2)), 
-                        static_cast<double>(point_3d_rect0_1(0)), 
-                        static_cast<double>(point_3d_rect0_1(1)), 
-                        static_cast<double>(point_3d_rect0_1(2))
-                );
-                problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(0.5), angles_0to1, t_0to1);
-                // ++counter33;
-            }
-            else if (depth0 > 0 and depth1 <= 0) {
-                point_3d_image0_0 << keypoints[1-i][match.queryIdx].pt.x*depth0, keypoints[1-i][match.queryIdx].pt.y*depth0, depth0;
-                point_3d_rect0_0 = (point_cloud_utils[1-i].P_rect0.leftCols(3)).colPivHouseholderQr().solve(point_3d_image0_0 - point_cloud_utils[1-i].P_rect0.col(3));
-
-                // assert(std::abs(point_3d_rect0_0(2) - depth0) < 0.0001);
-
-                ceres::CostFunction* cost_function = vloam::CostFunctor32::Create(
-                        static_cast<double>(point_3d_rect0_0(0)), 
-                        static_cast<double>(point_3d_rect0_0(1)), 
-                        static_cast<double>(point_3d_rect0_0(2)), 
-                        static_cast<double>(keypoints[i][match.trainIdx].pt.x * 2.0) / static_cast<double>(point_cloud_utils[i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
-                        static_cast<double>(keypoints[i][match.trainIdx].pt.y * 2.0) / static_cast<double>(point_cloud_utils[i].IMG_HEIGHT)
-                );
-                problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(0.5), angles_0to1, t_0to1);
-                // ++counter32;
-            }
-            else if (depth0 <= 0 and depth1 > 0) {
-                point_3d_image0_1 << keypoints[i][match.trainIdx].pt.x*depth1, keypoints[i][match.trainIdx].pt.y*depth1, depth1;
-                point_3d_rect0_1 = (point_cloud_utils[i].P_rect0.leftCols(3)).colPivHouseholderQr().solve(point_3d_image0_1 - point_cloud_utils[i].P_rect0.col(3));
-
-                // assert(std::abs(point_3d_rect0_1(2) - depth1) < 0.0001);
-
-                ceres::CostFunction* cost_function = vloam::CostFunctor23::Create(
-                        static_cast<double>(keypoints[1-i][match.queryIdx].pt.x * 2.0) / static_cast<double>(point_cloud_utils[1-i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
-                        static_cast<double>(keypoints[1-i][match.queryIdx].pt.y * 2.0) / static_cast<double>(point_cloud_utils[1-i].IMG_HEIGHT),
-                        static_cast<double>(point_3d_rect0_1(0)), 
-                        static_cast<double>(point_3d_rect0_1(1)), 
-                        static_cast<double>(point_3d_rect0_1(2))
-                );
-                problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(0.5), angles_0to1, t_0to1);
-                // ++counter23;
-            }
-            else {
-                ceres::CostFunction* cost_function = vloam::CostFunctor22::Create(
-                        static_cast<double>(keypoints[1-i][match.queryIdx].pt.x * 2.0) / static_cast<double>(point_cloud_utils[1-i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
-                        static_cast<double>(keypoints[1-i][match.queryIdx].pt.y * 2.0) / static_cast<double>(point_cloud_utils[1-i].IMG_HEIGHT),
-                        static_cast<double>(keypoints[i][match.trainIdx].pt.x * 2.0) / static_cast<double>(point_cloud_utils[i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
-                        static_cast<double>(keypoints[i][match.trainIdx].pt.y * 2.0) / static_cast<double>(point_cloud_utils[i].IMG_HEIGHT)
-                );
-                problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(0.5), angles_0to1, t_0to1);
-                // ++counter22;
-            }
-        }
-
-        ceres::Solve(options, &problem, &summary);
-        // std::cout << summary.FullReport() << "\n";
-
-        // ROS_INFO("angles_0to1 = (%f, %f, %f)", angles_0to1[0], angles_0to1[1], angles_0to1[2]); 
-        // ROS_INFO("t_0to1 = (%f, %f, %f)", t_0to1[0], t_0to1[1], t_0to1[2]); 
 
         // Section 5: Publish VO
 
         // get T_cam0_last^cam0_curr
-        cam0_curr_T_cam0_last.setOrigin(tf2::Vector3(t_0to1[0], t_0to1[1], t_0to1[2]));
-        angle = std::sqrt(std::pow(angles_0to1[0], 2) + std::pow(angles_0to1[1], 2) + std::pow(angles_0to1[2], 2));
-        cam0_curr_q_cam0_last.setRotation(tf2::Vector3(angles_0to1[0]/angle, angles_0to1[1]/angle, angles_0to1[2]/angle), angle);
-        cam0_curr_T_cam0_last.setRotation(cam0_curr_q_cam0_last);
+        cam0_curr_T_cam0_last = VO->solveVO();
 
         // get T_base_last^base_curr
         velo_last_T_velo_curr = velo_T_cam0 * cam0_curr_T_cam0_last.inverse() * velo_T_cam0.inverse(); // odom for velodyne
@@ -348,7 +196,7 @@ void execute(const vloam_main::vloam_mainGoalConstPtr& goal, Server* as) {
     // In kitti2bag, kitti_types = ["raw_synced", "odom_color", "odom_gray"]
     // https://github.com/tomas789/kitti2bag/blob/bf0d46c49a77f5d5500621934ccd617d18cf776b/kitti2bag/kitti2bag.py#L264
     ROS_INFO("The command is %s", cmd.c_str());
-    system(cmd.c_str());
+    int sys_ret = system(cmd.c_str());
 
     result.loading_finished = true;
     as->setSucceeded(result);
@@ -365,18 +213,13 @@ int main(int argc, char** argv) {
 
     ros::NodeHandle nh;
 
+    VO = std::make_shared<vloam::VisualOdometry>();
+
     sub_image00_ptr = std::make_shared<message_filters::Subscriber<sensor_msgs::Image>>(nh, "/kitti/camera_gray_left/image_raw", 1);
     sub_camera00_ptr = std::make_shared<message_filters::Subscriber<sensor_msgs::CameraInfo>>(nh, "/kitti/camera_gray_left/camera_info", 1);
     sub_velodyne_ptr = std::make_shared<message_filters::Subscriber<sensor_msgs::PointCloud2>>(nh, "/kitti/velo/pointcloud", 1);
 
     pub_reset_path = nh.advertise<std_msgs::String>("/syscommand", 5);
-    pub_point_cloud = nh.advertise<sensor_msgs::PointCloud2>("/point_cloud_follow_VO", 5);
-
-    options.max_num_iterations = 100;
-    options.linear_solver_type = ceres::DENSE_QR; // TODO: check the best solver
-    // Reference: http://ceres-solver.org/nnls_solving.html#linearsolver. For small problems (a couple of hundred parameters and a few thousand residuals) with relatively dense Jacobians, DENSE_QR is the method of choice
-    // In our case, residual num is 1000~2000, but num of param is only 6
-    // options.minimizer_progress_to_stdout = true;
 
     Server server(nh, "load_small_dataset_action_server", boost::bind(&execute, _1, &server), false);
     server.start();

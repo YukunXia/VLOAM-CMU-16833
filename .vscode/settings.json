@@ -2,5 +2,9 @@
     "python.autoComplete.extraPaths": [
         "/home/abby/project/VLOAM-CMU-16833/devel/lib/python2.7/dist-packages",
         "/opt/ros/melodic/lib/python2.7/dist-packages"
-    ]
+    ],
+    "files.associations": {
+        "*.world": "xml",
+        "cmath": "cpp"
+    }
 }
