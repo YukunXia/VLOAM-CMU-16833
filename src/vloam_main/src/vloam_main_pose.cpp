@@ -17,9 +17,12 @@
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf2/LinearMath/Transform.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+
+#include <pcl/common/transforms.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_types.h>
-// #include <nav_msgs/Path.h>
+#include <pcl_ros/transforms.h>
+
 #include <std_msgs/String.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
@@ -126,7 +129,7 @@ void init() {
     world_T_base_last.setOrigin(tf2::Vector3(0.0, 0.0, 0.0));
     world_T_base_last.setRotation(tf2::Quaternion(0.0, 0.0, 0.0, 1.0));
     world_stamped_tf_base.header.frame_id = "map";
-    world_stamped_tf_base.child_frame_id = "base";
+    world_stamped_tf_base.child_frame_id = "velo";
     world_stamped_tf_base.transform = tf2::toMsg(world_T_base_last);
 }
 
@@ -213,13 +216,21 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
     point_cloud_utils[i].point_cloud_3d_tilde = point_cloud_3d_tilde;
     point_cloud_utils[i].projectPointCloud();
     point_cloud_utils[i].downsamplePointCloud();    
+
+
+    // Cnvert point r.p.t. velo center
+
+    // sensor_msgs::PointCloud2 point_cloud_in_VO_msg
+    // pcl_ros::transformPointCloud( tf2::transformToEigen(scan_tf.transform).matrix(),
+    // *point_cloud_msg, *point_cloud_msg_velo);
+
     if (visualize_depth)
         point_cloud_utils[i].visualizeDepth(cv_ptr->image); // uncomment this for depth visualization, but remember to reduce the bag playing speed too
     if (publish_point_cloud) {
         sensor_msgs::PointCloud2 point_cloud_in_VO_msg = *point_cloud_msg;
         // ROS_INFO("point cloud frame id was %s", point_cloud_msg->header.frame_id.c_str());
         point_cloud_in_VO_msg.header.frame_id = "velo";
-        point_cloud_in_VO_msg.header.stamp = ros::Time::now();
+        point_cloud_in_VO_msg.header.stamp = image_msg->header.stamp;
         pub_point_cloud.publish(point_cloud_in_VO_msg);
     }
     // double time = (double)cv::getTickCount();
@@ -320,7 +331,7 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
         base_last_T_base_curr = base_T_cam0 * cam0_curr_T_cam0_last.inverse() * base_T_cam0.inverse();
 
         // get T_world^curr = T_last^curr * T_world^last
-        geometry_msgs::Transform temp = tf2::toMsg(base_last_T_base_curr); // TODO: check better solution
+        geometry_msgs::Transform temp = tf2::toMsg(velo_last_T_velo_curr); // Using velo center as the origin
         if (!std::isnan(temp.translation.x) and 
             !std::isnan(temp.translation.y) and 
             !std::isnan(temp.translation.z) and
@@ -328,19 +339,20 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
             !std::isnan(temp.rotation.y) and
             !std::isnan(temp.rotation.z) and
             !std::isnan(temp.rotation.w)) // avoid nan at the first couple steps
-            world_T_base_last *= base_last_T_base_curr; // after update, last becomes the curr
-        world_stamped_tf_base.header.stamp = ros::Time::now();
+            world_T_base_last *=  velo_last_T_velo_curr; // after update, last becomes the curr
+        world_stamped_tf_base.header.stamp = image_msg->header.stamp;
         world_stamped_tf_base.transform = tf2::toMsg(world_T_base_last);
 
         dynamic_broadcaster.sendTransform(world_stamped_tf_base);
-                            // publish odometry
+        
+        // publish odometry
         
         nav_msgs::Odometry visualOdometry;
         visualOdometry.header.frame_id = "/map";
-        visualOdometry.child_frame_id = "/camera_odom";
-        visualOdometry.header.stamp = ros::Time::now();//image_msg->header.stamp;
-        Eigen::Quaterniond q_wodom_curr(world_T_base_last.getRotation()); // wodom to cam
-        Eigen::Vector3d t_wodom_curr(world_T_base_last.getOrigin()); // wodom to cam
+        visualOdometry.child_frame_id = "/velo";
+        visualOdometry.header.stamp = image_msg->header.stamp;
+        Eigen::Quaterniond q_wodom_curr(world_T_base_last.getRotation()); 
+        Eigen::Vector3d t_wodom_curr(world_T_base_last.getOrigin()); 
         visualOdometry.pose.pose.orientation.x = q_wodom_curr.x();
         visualOdometry.pose.pose.orientation.y = q_wodom_curr.y();
         visualOdometry.pose.pose.orientation.z = q_wodom_curr.z();

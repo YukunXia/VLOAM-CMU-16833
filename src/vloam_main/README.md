@@ -7,7 +7,7 @@ PCL 1.2
 
 - Step 1, download bag files under "/bags"
 
-- Step 2, `catkin_make`, and then `roslaunch vloam_main vloam_main.launch`
+- Step 2, `catkin_make`, and then `roslaunch vloam_main vloam_combine.launch` (Toggle param ```save_traj``` to save odometry path into txt)
 
 - Step 3, check the sequence number and date for the bag file, and in another terminal, run
 ```
@@ -31,7 +31,15 @@ goal:
 
 Then, you should see a similar UI like this:
 
-![demo](figures/demo.png)
+![demo](figures/combine_pose.png)
+# TODO
+- ~Finish VO implementation~
+- ~Finish LO implementation~
+- ~Combine LO & VO implementation & fix Rviz~
+- ~Transform LO & VO to velodyne center & save trajectory to txt~
+- Fuse VO offline and feed to LO init
+- Evaluate odometry 
+- Fix tf tree(minor)
 
 # Naming convention for transformations
 

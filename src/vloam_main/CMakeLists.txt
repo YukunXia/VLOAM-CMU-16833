@@ -162,7 +162,8 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(vloam_main src/vloam_main.cpp)
-add_executable(vloam_main_pose src/vloam_main_modify.cpp)
+add_executable(vloam_main_pose src/vloam_main_pose.cpp)
+add_executable(odometryEvaluate src/odometryEvaluate.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -174,6 +175,7 @@ add_executable(vloam_main_pose src/vloam_main_modify.cpp)
 ## same as for the library above
 add_dependencies(vloam_main ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(vloam_main_pose ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(odometryEvaluate ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(vloam_main
@@ -181,6 +183,9 @@ target_link_libraries(vloam_main
 )
 target_link_libraries(vloam_main_pose
   ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} Eigen3::Eigen ${CERES_LIBRARIES} image_util point_cloud_util
+)
+target_link_libraries(odometryEvaluate
+  ${catkin_LIBRARIES} Eigen3::Eigen
 )
 
 #############
