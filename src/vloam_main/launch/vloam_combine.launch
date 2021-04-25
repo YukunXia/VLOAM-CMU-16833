@@ -1,14 +1,15 @@
 <launch>
 
     <node pkg="vloam_main" type="vloam_main_pose" name="vloam_main_pose" output="screen">
-        <param name="rosbag_rate" type="double" value="0.5" />
+        <param name="rosbag_rate" type="double" value="0.1" />
         <param name="visualize_depth" type="bool" value="false" />
         <param name="publish_point_cloud" type="bool" value="true" />
     </node>
     
-    <include file="$(find aloam_velodyne)/launch/aloam_velodyne_HDL_64_kitti.launch" />
+    <!-- <include file="$(find aloam_velodyne)/launch/aloam_velodyne_HDL_64_kitti.launch" /> -->
+    <include file="$(find lidar_odometry)/launch/aloam_velodyne_HDL_64_kitti.launch" />
 
-    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find vloam_main)/rviz/vloam.rviz" />
+    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find vloam_main)/rviz/vloam_combined.rviz" />
 
 
 </launch>

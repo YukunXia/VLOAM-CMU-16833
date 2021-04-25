@@ -5,6 +5,14 @@
     ],
     "files.associations": {
         "*.world": "xml",
-        "cmath": "cpp"
+        "cmath": "cpp",
+        "string": "cpp",
+        "*.ipp": "cpp",
+        "array": "cpp",
+        "string_view": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp",
+        "unordered_map": "cpp",
+        "unordered_set": "cpp"
     }
 }
