@@ -7,7 +7,7 @@
     </node>
     
     <!-- <include file="$(find aloam_velodyne)/launch/aloam_velodyne_HDL_64_kitti.launch" /> -->
-    <include file="$(find lidar_odometry)/launch/aloam_velodyne_HDL_64_kitti.launch" />
+    <include file="$(find lidar_odometry_mapping)/launch/loam_velodyne_HDL_64_kitti.launch" />
 
     <node type="rviz" name="rviz" pkg="rviz" args="-d $(find vloam_main)/rviz/vloam_combined.rviz" />
 
