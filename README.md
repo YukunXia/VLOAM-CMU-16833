@@ -15,6 +15,5 @@ Note: current dataloader only support "synced" type dataset.
 
 - Add code to point cloud util to receive the transformations from ROS
 - Add code to point cloud util to convert ROS PointCloud2 to Eigen MatrixXd
-- Refactor and optimize VO (Maybe combine image_util and point_cloud_util into one class, and depth are directly assigned to the feature)
-    - Depth estimation at boundary needs to check point inclusion of the nearest triangle (performance may hurt a little)
+- Depth estimation at boundary needs to check point inclusion of the nearest triangle (performance may hurt a little)
 - Parallelize point cloud depth estimation and feature matching

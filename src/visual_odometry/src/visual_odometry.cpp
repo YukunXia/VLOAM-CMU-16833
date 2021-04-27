@@ -31,6 +31,10 @@ namespace vloam {
         // Reference: http://ceres-solver.org/nnls_solving.html#linearsolver. For small problems (a couple of hundred parameters and a few thousand residuals) with relatively dense Jacobians, DENSE_QR is the method of choice
         // In our case, residual num is 1000~2000, but num of param is only 6
         // options.minimizer_progress_to_stdout = true;
+
+        pubvisualOdometry = nh.advertise<nav_msgs::Odometry>("/visual_odom_to_init", 100);
+        pubvisualPath = nh.advertise<nav_msgs::Path>("/visual_odom_path", 100);
+        visualPath.poses.clear();
     }
 
     void VisualOdometry::setUpVO() {
@@ -174,6 +178,30 @@ namespace vloam {
         cam0_curr_T_cam0_last.setRotation(cam0_curr_q_cam0_last);
 
         return cam0_curr_T_cam0_last;
+    }
+
+    void VisualOdometry::publish (const tf2::Transform& world_T_base_last) {
+        visualOdometry.header.frame_id = "map";
+        visualOdometry.child_frame_id = "VO";
+        visualOdometry.header.stamp = ros::Time::now();//image_msg->header.stamp;
+        Eigen::Quaterniond q_wodom_curr(world_T_base_last.getRotation()); // wodom to cam
+        Eigen::Vector3d t_wodom_curr(world_T_base_last.getOrigin()); // wodom to cam
+        visualOdometry.pose.pose.orientation.x = q_wodom_curr.x();
+        visualOdometry.pose.pose.orientation.y = q_wodom_curr.y();
+        visualOdometry.pose.pose.orientation.z = q_wodom_curr.z();
+        visualOdometry.pose.pose.orientation.w = q_wodom_curr.w();
+        visualOdometry.pose.pose.position.x = t_wodom_curr.x();
+        visualOdometry.pose.pose.position.y = t_wodom_curr.y();
+        visualOdometry.pose.pose.position.z = t_wodom_curr.z();
+        pubvisualOdometry.publish(visualOdometry);
+
+        geometry_msgs::PoseStamped visualPose;
+        visualPose.header = visualOdometry.header;
+        visualPose.pose = visualOdometry.pose.pose;
+        visualPath.header.stamp = visualOdometry.header.stamp;
+        visualPath.header.frame_id = "map";
+        visualPath.poses.push_back(visualPose);
+        pubvisualPath.publish(visualPath);
     }
 
 }

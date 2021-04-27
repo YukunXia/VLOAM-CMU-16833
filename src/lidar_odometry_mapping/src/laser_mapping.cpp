@@ -671,75 +671,6 @@ namespace vloam {
     void LaserMapping::publish() { // TODO: take in global skip frame
         TicToc t_pub;
 
-        // // if (true) { // TODO: globally config published message and publish time
-        // nav_msgs::Odometry odomAftMapped;
-        // odomAftMapped.header.frame_id = "map";
-        // odomAftMapped.child_frame_id = "aft_mapped";
-        // odomAftMapped.header.stamp = ros::Time::now();
-        // odomAftMapped.pose.pose.orientation.x = q_w_curr.x();
-        // odomAftMapped.pose.pose.orientation.y = q_w_curr.y();
-        // odomAftMapped.pose.pose.orientation.z = q_w_curr.z();
-        // odomAftMapped.pose.pose.orientation.w = q_w_curr.w();
-        // odomAftMapped.pose.pose.position.x = t_w_curr.x();
-        // odomAftMapped.pose.pose.position.y = t_w_curr.y();
-        // odomAftMapped.pose.pose.position.z = t_w_curr.z();
-        // pubOdomAftMappedHighFrec.publish(odomAftMapped);
-        // // }
-
-        //publish surround map for every 5 frame
-        // if (frameCount % skip_frame_number == 0)
-        // {
-        //     laserCloudSurround->clear();
-        //     for (int i = 0; i < laserCloudSurroundNum; i++)
-        //     {
-        //         int ind = laserCloudSurroundInd[i];
-        //         *laserCloudSurround += *laserCloudCornerArray[ind];
-        //         *laserCloudSurround += *laserCloudSurfArray[ind];
-        //     }
-
-        //     sensor_msgs::PointCloud2 laserCloudSurround3;
-        //     pcl::toROSMsg(*laserCloudSurround, laserCloudSurround3);
-        //     laserCloudSurround3.header.stamp = ros::Time::now(); // TODO: globally config time stamp
-        //     laserCloudSurround3.header.frame_id = "map";
-        //     pubLaserCloudSurround.publish(laserCloudSurround3);
-        // }
-
-        if ((frameCount*skip_frame_number) % map_pub_number == 0) // 0.5 Hz? 
-        {
-            pcl::PointCloud<PointType> laserCloudMap;
-            for (int i = 0; i < 4851; i++)
-            {
-                laserCloudMap += *laserCloudCornerArray[i];
-                laserCloudMap += *laserCloudSurfArray[i];
-            }
-            sensor_msgs::PointCloud2 laserCloudMsg;
-            pcl::toROSMsg(laserCloudMap, laserCloudMsg);
-            laserCloudMsg.header.stamp = ros::Time::now(); // TODO: globally config time stamp
-            laserCloudMsg.header.frame_id = "map";
-            pubLaserCloudMap.publish(laserCloudMsg);
-            if (verbose_level > 1)
-                ROS_INFO("publishing the map, with %ld points", laserCloudMap.size());
-        }
-
-        int laserCloudFullResNum = laserCloudFullRes->points.size();
-        for (int i = 0; i < laserCloudFullResNum; i++)
-        {
-            pointAssociateToMap(&laserCloudFullRes->points[i], &laserCloudFullRes->points[i]);
-        }
-
-        sensor_msgs::PointCloud2 laserCloudFullRes3; // Q: what's the difference between laserCloudFullRes 1 2 and 3?
-        pcl::toROSMsg(*laserCloudFullRes, laserCloudFullRes3);
-        laserCloudFullRes3.header.stamp = ros::Time::now(); // TODO: globally config time stamp
-        laserCloudFullRes3.header.frame_id = "map"; 
-        pubLaserCloudFullRes.publish(laserCloudFullRes3);
-
-
-        if (verbose_level > 1) {
-            ROS_INFO("mapping pub time %f ms \n", t_pub.toc());
-
-            ROS_INFO("whole mapping time %f ms +++++\n", t_whole.toc()); // TODO check if t_whole tictoc obj can be shared in class
-        }
-
         nav_msgs::Odometry odomAftMapped;
         odomAftMapped.header.frame_id = "map";
         odomAftMapped.child_frame_id = "aft_mapped";
@@ -784,6 +715,75 @@ namespace vloam {
         q.setZ(q_w_curr.z());
         transform.setRotation(q);
         br.sendTransform(tf::StampedTransform(transform, odomAftMapped.header.stamp, "map", "aft_mapped"));
+
+        // // if (true) { // TODO: globally config published message and publish time
+        // nav_msgs::Odometry odomAftMapped;
+        // odomAftMapped.header.frame_id = "map";
+        // odomAftMapped.child_frame_id = "aft_mapped";
+        // odomAftMapped.header.stamp = ros::Time::now();
+        // odomAftMapped.pose.pose.orientation.x = q_w_curr.x();
+        // odomAftMapped.pose.pose.orientation.y = q_w_curr.y();
+        // odomAftMapped.pose.pose.orientation.z = q_w_curr.z();
+        // odomAftMapped.pose.pose.orientation.w = q_w_curr.w();
+        // odomAftMapped.pose.pose.position.x = t_w_curr.x();
+        // odomAftMapped.pose.pose.position.y = t_w_curr.y();
+        // odomAftMapped.pose.pose.position.z = t_w_curr.z();
+        // pubOdomAftMappedHighFrec.publish(odomAftMapped);
+        // // }
+
+        //publish surround map for every 5 frame
+        // if (frameCount % skip_frame_number == 0)
+        // {
+        //     laserCloudSurround->clear();
+        //     for (int i = 0; i < laserCloudSurroundNum; i++)
+        //     {
+        //         int ind = laserCloudSurroundInd[i];
+        //         *laserCloudSurround += *laserCloudCornerArray[ind];
+        //         *laserCloudSurround += *laserCloudSurfArray[ind];
+        //     }
+
+        //     sensor_msgs::PointCloud2 laserCloudSurround3;
+        //     pcl::toROSMsg(*laserCloudSurround, laserCloudSurround3);
+        //     laserCloudSurround3.header.stamp = ros::Time::now(); // TODO: globally config time stamp
+        //     laserCloudSurround3.header.frame_id = "map";
+        //     pubLaserCloudSurround.publish(laserCloudSurround3);
+        // }
+
+        if ((frameCount*skip_frame_number) % map_pub_number == 0) // 0.5 Hz? 
+        {
+            pcl::PointCloud<PointType> laserCloudMap;
+            for (int i = 0; i < 4851; i++)
+            {
+                laserCloudMap += *laserCloudCornerArray[i];
+                laserCloudMap += *laserCloudSurfArray[i];
+            }
+            sensor_msgs::PointCloud2 laserCloudMsg;
+            pcl::toROSMsg(laserCloudMap, laserCloudMsg);
+            laserCloudMsg.header.stamp = ros::Time::now(); // TODO: globally config time stamp
+            laserCloudMsg.header.frame_id = "velo_origin";
+            pubLaserCloudMap.publish(laserCloudMsg);
+            if (verbose_level > 1)
+                ROS_INFO("publishing the map, with %ld points", laserCloudMap.size());
+        }
+
+        int laserCloudFullResNum = laserCloudFullRes->points.size();
+        for (int i = 0; i < laserCloudFullResNum; i++)
+        {
+            pointAssociateToMap(&laserCloudFullRes->points[i], &laserCloudFullRes->points[i]);
+        }
+
+        sensor_msgs::PointCloud2 laserCloudFullRes3; // Q: what's the difference between laserCloudFullRes 1 2 and 3?
+        pcl::toROSMsg(*laserCloudFullRes, laserCloudFullRes3);
+        laserCloudFullRes3.header.stamp = ros::Time::now(); // TODO: globally config time stamp
+        laserCloudFullRes3.header.frame_id = "map"; 
+        pubLaserCloudFullRes.publish(laserCloudFullRes3);
+
+
+        if (verbose_level > 1) {
+            ROS_INFO("mapping pub time %f ms \n", t_pub.toc());
+
+            ROS_INFO("whole mapping time %f ms +++++\n", t_whole.toc()); // TODO check if t_whole tictoc obj can be shared in class
+        }
     }
 
 }

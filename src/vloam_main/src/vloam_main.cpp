@@ -68,7 +68,7 @@ pcl::PointCloud<pcl::PointXYZ> point_cloud_pcl;
 std::shared_ptr<vloam::LidarOdometryMapping> LOAM;
 
 std::shared_ptr<tf2_ros::Buffer> tf_buffer_ptr;
-geometry_msgs::TransformStamped imu_stamped_tf_velo, imu_stamped_tf_cam0, base_stamped_tf_imu;
+geometry_msgs::TransformStamped imu_stamped_tf_velo, map_stamped_tf_velo_origin, imu_stamped_tf_cam0, base_stamped_tf_imu;
 tf2::Transform imu_T_velo, imu_T_cam0, base_T_imu, base_T_cam0, velo_T_cam0;
 
 std::string seq, cmd;
@@ -118,6 +118,11 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
         imu_stamped_tf_velo.header.frame_id = "imu";
         imu_stamped_tf_velo.child_frame_id = "velo";
         static_broadcaster.sendTransform(imu_stamped_tf_velo);
+
+        map_stamped_tf_velo_origin = tf_buffer_ptr->lookupTransform("base_link", "velo_link", ros::Time::now(), ros::Duration(0.1));
+        map_stamped_tf_velo_origin.header.frame_id = "map";
+        map_stamped_tf_velo_origin.child_frame_id = "velo_origin";
+        static_broadcaster.sendTransform(map_stamped_tf_velo_origin);
 
         imu_stamped_tf_cam0 = tf_buffer_ptr->lookupTransform("imu_link", "camera_gray_left", ros::Time::now(), ros::Duration(0.1));
         tf2::fromMsg(imu_stamped_tf_cam0.transform, imu_T_cam0); // TODO: later use, if not, remove
@@ -175,6 +180,8 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
         world_stamped_tf_base.transform = tf2::toMsg(world_T_base_last);
 
         dynamic_broadcaster.sendTransform(world_stamped_tf_base);
+
+        VO->publish(world_T_base_last);
 
         // time = ((double)cv::getTickCount() - time) / cv::getTickFrequency();
         // std::cout << "Preprocessing 1 frames takes " << 1000 * time / 1.0 << " ms" << std::endl;

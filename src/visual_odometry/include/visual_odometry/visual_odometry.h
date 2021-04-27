@@ -1,3 +1,4 @@
+#pragma once
 
 #include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
@@ -9,6 +10,10 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <tf2/LinearMath/Transform.h>
+#include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/PoseStamped.h>
 
 #include <opencv2/opencv.hpp>
 #include <eigen3/Eigen/Dense>
@@ -43,6 +48,8 @@ namespace vloam {
 
             tf2::Transform solveVO();
 
+            void publish (const tf2::Transform& world_T_base_last);
+
         // private: 
             int i, j, count;
 
@@ -74,6 +81,11 @@ namespace vloam {
 
         private:
             ros::NodeHandle nh;
+
+            nav_msgs::Odometry visualOdometry;
+            ros::Publisher pubvisualOdometry;
+            nav_msgs::Path visualPath;
+            ros::Publisher pubvisualPath;
     };
 }
 
