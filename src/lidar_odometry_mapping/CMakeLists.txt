@@ -57,11 +57,8 @@ set_target_properties(laser_mapping PROPERTIES PUBLIC_HEADER include/${PROJECT_N
 add_library(lidar_odometry_mapping SHARED
   src/lidar_odometry_mapping.cpp
 )
-target_link_libraries(lidar_odometry_mapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES})
+target_link_libraries(lidar_odometry_mapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES} scan_registration laser_odometry laser_mapping)
 set_target_properties(lidar_odometry_mapping PROPERTIES PUBLIC_HEADER include/${PROJECT_NAME}/lidar_odometry_mapping.h)
-
-add_executable(loam_main_test test/loam_main_test.cpp)
-target_link_libraries(loam_main_test ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES} scan_registration laser_odometry laser_mapping)
 
 install(
   DIRECTORY include/${PROJECT_NAME}/

@@ -29,18 +29,29 @@ namespace vloam {
             LaserOdometry() : q_last_curr(para_q), t_last_curr(para_t) {}
 
             void init (ros::NodeHandle* nh_);
-            void reset ();
+
+            // void reset ();
+
+            void input(
+                const pcl::PointCloud<PointType>::Ptr& laserCloud_,
+                const pcl::PointCloud<PointType>::Ptr& cornerPointsSharp_,
+                const pcl::PointCloud<PointType>::Ptr& cornerPointsLessSharp_,
+                const pcl::PointCloud<PointType>::Ptr& surfPointsFlat_,
+                const pcl::PointCloud<PointType>::Ptr& surfPointsLessFlat_
+            );
             void solveLO();
+            void publish();
+            void output (
+                Eigen::Quaterniond& q_w_curr_,
+                Eigen::Vector3d& t_w_curr,
+                pcl::PointCloud<PointType>::Ptr& laserCloudCornerLast_,
+                pcl::PointCloud<PointType>::Ptr& laserCloudSurfLast_,
+                pcl::PointCloud<PointType>::Ptr& laserCloudFullRes_,
+                bool& skip_frame
+            );
 
             void TransformToStart(PointType const *const pi, PointType *const po);
             void TransformToEnd(PointType const *const pi, PointType *const po);
-
-            void laserCloudSharpHandler(const sensor_msgs::PointCloud2ConstPtr &cornerPointsSharp2);
-            void laserCloudLessSharpHandler(const sensor_msgs::PointCloud2ConstPtr &cornerPointsLessSharp2);
-            void laserCloudFlatHandler(const sensor_msgs::PointCloud2ConstPtr &surfPointsFlat2);
-            void laserCloudLessFlatHandler(const sensor_msgs::PointCloud2ConstPtr &surfPointsLessFlat2);
-            //receive all point cloud
-            void laserCloudFullResHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudFullRes2);
 
         private:
             const bool DISTORTION = false;
@@ -85,20 +96,7 @@ namespace vloam {
             Eigen::Map<Eigen::Quaterniond> q_last_curr;
             Eigen::Map<Eigen::Vector3d> t_last_curr;
 
-            std::vector<int> count_receive;
-            sensor_msgs::PointCloud2ConstPtr cornerSharpBuf;
-            sensor_msgs::PointCloud2ConstPtr cornerLessSharpBuf;
-            sensor_msgs::PointCloud2ConstPtr surfFlatBuf;
-            sensor_msgs::PointCloud2ConstPtr surfLessFlatBuf;
-            sensor_msgs::PointCloud2ConstPtr fullPointsBuf;
-
             ros::NodeHandle* nh;
-
-            ros::Subscriber subCornerPointsSharp;
-            ros::Subscriber subCornerPointsLessSharp;
-            ros::Subscriber subSurfPointsFlat;
-            ros::Subscriber subSurfPointsLessFlat;
-            ros::Subscriber subLaserCloudFullRes;
 
             ros::Publisher pubLaserCloudCornerLast;
             ros::Publisher pubLaserCloudSurfLast;

@@ -44,6 +44,17 @@ namespace vloam {
             void init (ros::NodeHandle* nh_);
 
             void reset();
+            void input(
+                const pcl::PointCloud<PointType>::Ptr& laserCloudCornerLast_,
+                const pcl::PointCloud<PointType>::Ptr& laserCloudSurfLast_,
+                const pcl::PointCloud<PointType>::Ptr& laserCloudFullRes_,
+                const Eigen::Quaterniond& q_wodom_curr_,
+                const Eigen::Vector3d& t_wodom_curr_,
+                const bool& skip_frame_
+            );
+            void publish();
+            void solveMapping();
+            void output();
 
             // set initial guess
             void transformAssociateToMap();
@@ -51,22 +62,8 @@ namespace vloam {
             void pointAssociateToMap(PointType const *const pi, PointType *const po);
             void pointAssociateTobeMapped(PointType const *const pi, PointType *const po);
 
-            void laserCloudCornerLastHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudCornerLast2);
-            void laserCloudSurfLastHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudSurfLast2);
-            void laserCloudFullResHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudFullRes2);
-            //receive odomtry
-            void laserOdometryHandler(const nav_msgs::Odometry::ConstPtr &laserOdometry);
-
-            void solveMapping();
-
         private:
             int frameCount = 0;
-
-            double timeLaserCloudCornerLast;
-            double timeLaserCloudSurfLast;
-            double timeLaserCloudFullRes;
-            double timeLaserOdometry;
-
 
             int laserCloudCenWidth;
             int laserCloudCenHeight;
@@ -107,6 +104,8 @@ namespace vloam {
             double parameters[7];
             Eigen::Map<Eigen::Quaterniond> q_w_curr;
             Eigen::Map<Eigen::Vector3d> t_w_curr;
+            Eigen::Quaterniond q_w_curr_highfreq;
+            Eigen::Vector3d t_w_curr_highfreq;
 
             // wmap_T_odom * odom_T_curr = wmap_T_curr;
             // transformation between odom's world and map's world frame
@@ -137,12 +136,12 @@ namespace vloam {
             float lineRes;
             float planeRes;
 
-            std::vector<int> count_receive;
+            int laserCloudValidNum;
+            int laserCloudSurroundNum;
 
-            ros::Subscriber subLaserCloudCornerLast;
-            ros::Subscriber subLaserCloudSurfLast;
-            ros::Subscriber subLaserOdometry;
-            ros::Subscriber subLaserCloudFullRes;
+            TicToc t_whole;
+
+            bool skip_frame;
     };
 
 }

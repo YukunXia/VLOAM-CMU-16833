@@ -1,4 +1,5 @@
 <launch>
+    <include file="$(find lidar_odometry_mapping)/launch/loam_velodyne_HDL_64_kitti.launch" />
 
     <node pkg="vloam_main" type="vloam_main" name="vloam_main" output="screen">
         <param name="rosbag_rate" type="double" value="0.5" />

@@ -172,14 +172,6 @@ set_target_properties(visual_odometry PROPERTIES PUBLIC_HEADER include/${PROJECT
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(test_opencv test/test_opencv.cpp)
-add_executable(test_kitti_image test/test_kitti_image.cpp)
-add_executable(test_kitti_pointcloud test/test_kitti_pointcloud.cpp)
-add_executable(test_ceres test/test_ceres.cpp)
-add_executable(test_ceres_BA test/test_ceres_BA.cpp)
-add_executable(test_image_util test/test_image_util.cpp)
-add_executable(test_point_cloud_util test/test_point_cloud_util.cpp)
-add_executable(test_f2f_motion_estimation test/test_f2f_motion_estimation.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -192,30 +184,6 @@ add_executable(test_f2f_motion_estimation test/test_f2f_motion_estimation.cpp)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(test_opencv
-  ${catkin_LIBRARIES} ${OpenCV_LIBS}
-)
-target_link_libraries(test_kitti_image
-  ${catkin_LIBRARIES} ${OpenCV_LIBS}
-)
-target_link_libraries(test_kitti_pointcloud
-  ${catkin_LIBRARIES} Eigen3::Eigen ${OpenCV_LIBS}
-)
-target_link_libraries(test_ceres
-  ${catkin_LIBRARIES} ${CERES_LIBRARIES}
-)
-target_link_libraries(test_ceres_BA
-  ${catkin_LIBRARIES} ${CERES_LIBRARIES}
-)
-target_link_libraries(test_image_util
-  ${catkin_LIBRARIES} ${OpenCV_LIBS} image_util
-)
-target_link_libraries(test_point_cloud_util
-  ${catkin_LIBRARIES} ${OpenCV_LIBS} point_cloud_util
-)
-target_link_libraries(test_f2f_motion_estimation
-  ${catkin_LIBRARIES} ${OpenCV_LIBS} image_util point_cloud_util ${CERES_LIBRARIES}
-)
 
 #############
 ## Install ##

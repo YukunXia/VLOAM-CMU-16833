@@ -20,30 +20,42 @@ namespace vloam {
             ROS_ERROR("only support velodyne with 16, 32 or 64 scan line!");
         }
 
-        subLaserCloud = nh->subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 100, &ScanRegistration::laserCloudHandler, this);
 
+        // // NOTE: publishers and subscribers won't necessarily used, but are kept for forward compatibility
+        // subLaserCloud = nh->subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 100, &ScanRegistration::laserCloudHandler, this);
         pubLaserCloud = nh->advertise<sensor_msgs::PointCloud2>("/velodyne_cloud_2", 100);
-
         pubCornerPointsSharp = nh->advertise<sensor_msgs::PointCloud2>("/laser_cloud_sharp", 100);
-
         pubCornerPointsLessSharp = nh->advertise<sensor_msgs::PointCloud2>("/laser_cloud_less_sharp", 100);
-
         pubSurfPointsFlat = nh->advertise<sensor_msgs::PointCloud2>("/laser_cloud_flat", 100);
-
         pubSurfPointsLessFlat = nh->advertise<sensor_msgs::PointCloud2>("/laser_cloud_less_flat", 100);
-
         // pubRemovePoints = nh->advertise<sensor_msgs::PointCloud2>("/laser_remove_points", 100);
 
-        // PUB_EACH_LINE = false;
-        // std::vector<ros::Publisher> pubEachScan;
-        // if(PUB_EACH_LINE)
-        // {
-        //     for(int i = 0; i < N_SCANS; i++)
-        //     {
-        //         ros::Publisher tmp = nh.advertise<sensor_msgs::PointCloud2>("/laser_scanid_" + std::to_string(i), 100);
-        //         pubEachScan.push_back(tmp);
-        //     }
-        // }
+        PUB_EACH_LINE = false;
+        // // std::vector<ros::Publisher> pubEachScan;
+        // // if(PUB_EACH_LINE)
+        // // {
+        // //     for(int i = 0; i < N_SCANS; i++)
+        // //     {
+        // //         ros::Publisher tmp = nh.advertise<sensor_msgs::PointCloud2>("/laser_scanid_" + std::to_string(i), 100);
+        // //         pubEachScan.push_back(tmp);
+        // //     }
+        // // }
+
+        laserCloud = boost::make_shared<pcl::PointCloud<PointType>>();
+        cornerPointsSharp = boost::make_shared<pcl::PointCloud<PointType>>();
+        cornerPointsLessSharp = boost::make_shared<pcl::PointCloud<PointType>>();
+        surfPointsFlat = boost::make_shared<pcl::PointCloud<PointType>>();
+        surfPointsLessFlat = boost::make_shared<pcl::PointCloud<PointType>>();
+    }
+
+    void ScanRegistration::reset() {
+        laserCloud ->clear();
+        cornerPointsSharp->clear();
+        cornerPointsLessSharp->clear();
+        surfPointsFlat->clear();
+        surfPointsLessFlat->clear();
+
+        laserCloudScans = std::vector<pcl::PointCloud<PointType>>(N_SCANS); // N_SCANS = 64 for kitti
     }
 
     template <typename PointT>
@@ -76,7 +88,7 @@ namespace vloam {
         cloud_out.is_dense = true;
     }
 
-    void ScanRegistration::laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg) {
+    void ScanRegistration::input(const pcl::PointCloud<pcl::PointXYZ>& laserCloudIn_) {
         if (!systemInited)
         { 
             systemInitCount++;
@@ -88,20 +100,19 @@ namespace vloam {
                 return;
         }
         
-        printf("scan registration starts");
+        ROS_INFO("scan registration starts");
+        t_whole.tic();
 
-        TicToc t_whole;
-        TicToc t_prepare;
         std::vector<int> scanStartInd(N_SCANS, 0);
         std::vector<int> scanEndInd(N_SCANS, 0);
 
-        pcl::PointCloud<pcl::PointXYZ> laserCloudIn;
-        pcl::fromROSMsg(*laserCloudMsg, laserCloudIn);
+        pcl::PointCloud<pcl::PointXYZ> laserCloudIn = laserCloudIn_;
+        // pcl::fromROSMsg(laserCloudMsg, laserCloudIn); // TODO: see if the input of the function should have another type from vloam_main
         std::vector<int> indices;
 
         pcl::removeNaNFromPointCloud(laserCloudIn, laserCloudIn, indices);
         removeClosedPointCloud(laserCloudIn, laserCloudIn, MINIMUM_RANGE);
-        printf("end of closed point removal");
+        ROS_INFO("end of closed point removal");
 
 
         int cloudSize = laserCloudIn.points.size();
@@ -118,12 +129,11 @@ namespace vloam {
         {
             endOri += 2 * M_PI;
         }
-        printf("end Ori %f\n", endOri);
+        ROS_INFO("end Ori %f\n", endOri);
 
         bool halfPassed = false;
         int count = cloudSize;
         PointType point;
-        std::vector<pcl::PointCloud<PointType>> laserCloudScans(N_SCANS); // N_SCANS = 64 for kitti
         for (int i = 0; i < cloudSize; i++)
         {
             point.x = laserCloudIn.points[i].x;
@@ -167,10 +177,10 @@ namespace vloam {
             }
             else
             {
-                printf("wrong scan number\n");
+                ROS_INFO("wrong scan number\n");
                 ROS_BREAK();
             }
-            //printf("angle %f scanID %d \n", angle, scanID);
+            //ROS_INFO("angle %f scanID %d \n", angle, scanID);
 
             float ori = -atan2(point.y, point.x);
             if (!halfPassed)
@@ -208,9 +218,8 @@ namespace vloam {
         }
         
         cloudSize = count;
-        printf("points size %d \n", cloudSize);
+        ROS_INFO("points size %d \n", cloudSize);
 
-        pcl::PointCloud<PointType>::Ptr laserCloud(new pcl::PointCloud<PointType>());
         for (int i = 0; i < N_SCANS; i++)
         { 
             scanStartInd[i] = laserCloud->size() + 5;
@@ -218,7 +227,7 @@ namespace vloam {
             scanEndInd[i] = laserCloud->size() - 6;
         }
 
-        printf("prepare time %f \n", t_prepare.toc());
+        ROS_INFO("prepare time %f \n", t_prepare.toc());
 
         for (int i = 5; i < cloudSize - 5; i++)
         { 
@@ -234,11 +243,6 @@ namespace vloam {
 
 
         TicToc t_pts;
-
-        pcl::PointCloud<PointType> cornerPointsSharp;
-        pcl::PointCloud<PointType> cornerPointsLessSharp;
-        pcl::PointCloud<PointType> surfPointsFlat;
-        pcl::PointCloud<PointType> surfPointsLessFlat;
 
         float t_q_sort = 0;
         for (int i = 0; i < N_SCANS; i++)
@@ -270,13 +274,13 @@ namespace vloam {
                         if (largestPickedNum <= 2)
                         {                        
                             cloudLabel[ind] = 2;
-                            cornerPointsSharp.push_back(laserCloud->points[ind]);
-                            cornerPointsLessSharp.push_back(laserCloud->points[ind]);
+                            cornerPointsSharp->push_back(laserCloud->points[ind]);
+                            cornerPointsLessSharp->push_back(laserCloud->points[ind]);
                         }
                         else if (largestPickedNum <= 20)
                         {                        
                             cloudLabel[ind] = 1; 
-                            cornerPointsLessSharp.push_back(laserCloud->points[ind]);
+                            cornerPointsLessSharp->push_back(laserCloud->points[ind]);
                         }
                         else
                         {
@@ -322,7 +326,7 @@ namespace vloam {
                     {
 
                         cloudLabel[ind] = -1; 
-                        surfPointsFlat.push_back(laserCloud->points[ind]);
+                        surfPointsFlat->push_back(laserCloud->points[ind]);
 
                         smallestPickedNum++;
                         if (smallestPickedNum >= 4)
@@ -373,40 +377,45 @@ namespace vloam {
             downSizeFilter.setLeafSize(0.2, 0.2, 0.2);
             downSizeFilter.filter(surfPointsLessFlatScanDS);
 
-            surfPointsLessFlat += surfPointsLessFlatScanDS;
+            *surfPointsLessFlat += surfPointsLessFlatScanDS;
         }
-        printf("sort q time %f \n", t_q_sort);
-        printf("seperate points time %f \n", t_pts.toc());
+        ROS_INFO("sort q time %f \n", t_q_sort);
+        ROS_INFO("seperate points time %f \n", t_pts.toc());
 
+
+
+    }
+
+    void ScanRegistration::publish() {
 
         sensor_msgs::PointCloud2 laserCloudOutMsg;
         pcl::toROSMsg(*laserCloud, laserCloudOutMsg);
-        laserCloudOutMsg.header.stamp = laserCloudMsg->header.stamp;
-        laserCloudOutMsg.header.frame_id = "map";
+        laserCloudOutMsg.header.stamp = ros::Time::now();
+        laserCloudOutMsg.header.frame_id = "velo";
         pubLaserCloud.publish(laserCloudOutMsg);
 
         sensor_msgs::PointCloud2 cornerPointsSharpMsg;
-        pcl::toROSMsg(cornerPointsSharp, cornerPointsSharpMsg);
-        cornerPointsSharpMsg.header.stamp = laserCloudMsg->header.stamp;
-        cornerPointsSharpMsg.header.frame_id = "map";
+        pcl::toROSMsg(*cornerPointsSharp, cornerPointsSharpMsg);
+        cornerPointsSharpMsg.header.stamp = ros::Time::now();
+        cornerPointsSharpMsg.header.frame_id = "velo";
         pubCornerPointsSharp.publish(cornerPointsSharpMsg);
 
         sensor_msgs::PointCloud2 cornerPointsLessSharpMsg;
-        pcl::toROSMsg(cornerPointsLessSharp, cornerPointsLessSharpMsg);
-        cornerPointsLessSharpMsg.header.stamp = laserCloudMsg->header.stamp;
-        cornerPointsLessSharpMsg.header.frame_id = "map";
+        pcl::toROSMsg(*cornerPointsLessSharp, cornerPointsLessSharpMsg);
+        cornerPointsLessSharpMsg.header.stamp = ros::Time::now();
+        cornerPointsLessSharpMsg.header.frame_id = "velo";
         pubCornerPointsLessSharp.publish(cornerPointsLessSharpMsg);
 
         sensor_msgs::PointCloud2 surfPointsFlat2;
-        pcl::toROSMsg(surfPointsFlat, surfPointsFlat2);
-        surfPointsFlat2.header.stamp = laserCloudMsg->header.stamp;
-        surfPointsFlat2.header.frame_id = "map";
+        pcl::toROSMsg(*surfPointsFlat, surfPointsFlat2);
+        surfPointsFlat2.header.stamp = ros::Time::now();
+        surfPointsFlat2.header.frame_id = "velo";
         pubSurfPointsFlat.publish(surfPointsFlat2);
 
         sensor_msgs::PointCloud2 surfPointsLessFlat2;
-        pcl::toROSMsg(surfPointsLessFlat, surfPointsLessFlat2);
-        surfPointsLessFlat2.header.stamp = laserCloudMsg->header.stamp;
-        surfPointsLessFlat2.header.frame_id = "map";
+        pcl::toROSMsg(*surfPointsLessFlat, surfPointsLessFlat2);
+        surfPointsLessFlat2.header.stamp = ros::Time::now();
+        surfPointsLessFlat2.header.frame_id = "velo";
         pubSurfPointsLessFlat.publish(surfPointsLessFlat2);
 
         // pub each scam
@@ -416,15 +425,29 @@ namespace vloam {
             {
                 sensor_msgs::PointCloud2 scanMsg;
                 pcl::toROSMsg(laserCloudScans[i], scanMsg);
-                scanMsg.header.stamp = laserCloudMsg->header.stamp;
+                scanMsg.header.stamp = ros::Time::now();
                 scanMsg.header.frame_id = "map";
                 pubEachScan[i].publish(scanMsg);
             }
         }
 
-        printf("scan registration time %f ms *************\n", t_whole.toc());
+        ROS_INFO("scan registration time %f ms *************\n", t_whole.toc());
         if(t_whole.toc() > 100)
             ROS_WARN("scan registration process over 100ms");
+    }
+
+    void ScanRegistration::output(
+        pcl::PointCloud<PointType>::Ptr& laserCloud_, 
+        pcl::PointCloud<PointType>::Ptr& cornerPointsSharp_,
+        pcl::PointCloud<PointType>::Ptr& cornerPointsLessSharp_,
+        pcl::PointCloud<PointType>::Ptr& surfPointsFlat_,
+        pcl::PointCloud<PointType>::Ptr& surfPointsLessFlat_
+    ) {
+        laserCloud_ = this->laserCloud;
+        cornerPointsSharp_ = this->cornerPointsSharp;
+        cornerPointsLessSharp_ = this->cornerPointsLessSharp;
+        surfPointsFlat_ = this->surfPointsFlat;
+        surfPointsLessFlat_ = this->surfPointsLessFlat;
     }
 
 }

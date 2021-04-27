@@ -29,7 +29,16 @@ namespace vloam {
             ScanRegistration(){}
             
             void init (ros::NodeHandle* nh_);
-            void laserCloudHandler(const sensor_msgs::PointCloud2ConstPtr &laserCloudMsg);
+            void reset();
+            void input(const pcl::PointCloud<pcl::PointXYZ>& laserCloudIn_);
+            void publish();
+            void output(
+                pcl::PointCloud<PointType>::Ptr& laserCloud_, 
+                pcl::PointCloud<PointType>::Ptr& cornerPointsSharp_,
+                pcl::PointCloud<PointType>::Ptr& cornerPointsLessSharp_,
+                pcl::PointCloud<PointType>::Ptr& surfPointsFlat_,
+                pcl::PointCloud<PointType>::Ptr& surfPointsLessFlat_
+            );
 
             // bool comp (int i,int j) { return (cloudCurvature[i]<cloudCurvature[j]); }
             template <typename PointT>
@@ -50,7 +59,7 @@ namespace vloam {
 
             ros::NodeHandle* nh;
 
-            ros::Subscriber subLaserCloud;
+            // ros::Subscriber subLaserCloud;
             ros::Publisher pubLaserCloud;
             ros::Publisher pubCornerPointsSharp;
             ros::Publisher pubCornerPointsLessSharp;
@@ -62,6 +71,17 @@ namespace vloam {
             bool PUB_EACH_LINE;
 
             double MINIMUM_RANGE = 0.1; 
+
+            pcl::PointCloud<PointType>::Ptr laserCloud;
+            pcl::PointCloud<PointType>::Ptr cornerPointsSharp;
+            pcl::PointCloud<PointType>::Ptr cornerPointsLessSharp;
+            pcl::PointCloud<PointType>::Ptr surfPointsFlat;
+            pcl::PointCloud<PointType>::Ptr surfPointsLessFlat;
+
+            std::vector<pcl::PointCloud<PointType>> laserCloudScans;
+
+            TicToc t_whole;
+            TicToc t_prepare;
     };
 
 }

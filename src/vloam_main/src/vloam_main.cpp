@@ -26,10 +26,11 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 
-#include <visual_odometry/image_util.h>
-#include <visual_odometry/point_cloud_util.h>
-#include <visual_odometry/ceres_cost_function.h>
+// #include <visual_odometry/image_util.h>
+// #include <visual_odometry/point_cloud_util.h>
+// #include <visual_odometry/ceres_cost_function.h>
 #include <visual_odometry/visual_odometry.h>
+#include <lidar_odometry_mapping/lidar_odometry_mapping.h>
 
 #include <vloam_main/vloam_mainAction.h>
 #include <vloam_main/vloam_mainFeedback.h>
@@ -40,6 +41,8 @@
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
 #include <ceres/loss_function.h>
+
+ros::NodeHandle* nh_ptr;
 
 double rosbag_rate;
 bool visualize_depth, publish_point_cloud;
@@ -61,6 +64,8 @@ std::shared_ptr<vloam::VisualOdometry> VO;
 cv_bridge::CvImagePtr cv_ptr;
 pcl::PointCloud<pcl::PointXYZ> point_cloud_pcl;
 
+std::shared_ptr<vloam::LidarOdometryMapping> LOAM;
+
 std::shared_ptr<tf2_ros::Buffer> tf_buffer_ptr;
 geometry_msgs::TransformStamped imu_stamped_tf_velo, imu_stamped_tf_cam0, base_stamped_tf_imu;
 tf2::Transform imu_T_velo, imu_T_cam0, base_T_imu, base_T_cam0, velo_T_cam0;
@@ -76,6 +81,7 @@ void init() {
     count = 0;
 
     VO->init();
+    LOAM->init(nh_ptr);
 
     world_T_base_last.setOrigin(tf2::Vector3(0.0, 0.0, 0.0));
     world_T_base_last.setRotation(tf2::Quaternion(0.0, 0.0, 0.0, 1.0));
@@ -90,6 +96,7 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
 
     i = count%2;
     VO->setUpVO();
+    LOAM->reset();
 
     // Section 1: Process Image // takes ~34ms
     cv_ptr = cv_bridge::toCvCopy(image_msg, sensor_msgs::image_encodings::MONO8);
@@ -144,8 +151,6 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
     // double time = (double)cv::getTickCount();
     
     if (count > 1) {
-
-
         // Section 5: Publish VO
 
         // get T_cam0_last^cam0_curr
@@ -173,6 +178,12 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
         // time = ((double)cv::getTickCount() - time) / cv::getTickFrequency();
         // std::cout << "Preprocessing 1 frames takes " << 1000 * time / 1.0 << " ms" << std::endl;
     }
+
+    ROS_INFO("VLOAM MAIN: LOAM Starts; %d", count);
+    LOAM->scanRegistrationIO(point_cloud_pcl);
+    LOAM->laserOdometryIO();
+    // LOAM->laserMappingIO();
+    ROS_INFO("VLOAM MAIN: LOAM ends;   %d", count);
 
     ++count;
 }
@@ -212,12 +223,14 @@ int main(int argc, char** argv) {
     nh_private.getParam("publish_point_cloud", publish_point_cloud);
 
     ros::NodeHandle nh;
+    nh_ptr = &nh;
 
     VO = std::make_shared<vloam::VisualOdometry>();
+    LOAM = std::make_shared<vloam::LidarOdometryMapping>();
 
-    sub_image00_ptr = std::make_shared<message_filters::Subscriber<sensor_msgs::Image>>(nh, "/kitti/camera_gray_left/image_raw", 1);
-    sub_camera00_ptr = std::make_shared<message_filters::Subscriber<sensor_msgs::CameraInfo>>(nh, "/kitti/camera_gray_left/camera_info", 1);
-    sub_velodyne_ptr = std::make_shared<message_filters::Subscriber<sensor_msgs::PointCloud2>>(nh, "/kitti/velo/pointcloud", 1);
+    sub_image00_ptr = std::make_shared<message_filters::Subscriber<sensor_msgs::Image>>(nh, "/kitti/camera_gray_left/image_raw", 5);
+    sub_camera00_ptr = std::make_shared<message_filters::Subscriber<sensor_msgs::CameraInfo>>(nh, "/kitti/camera_gray_left/camera_info", 5);
+    sub_velodyne_ptr = std::make_shared<message_filters::Subscriber<sensor_msgs::PointCloud2>>(nh, "/kitti/velo/pointcloud", 5); // TODO: change the buffer size to potentially reduce the data lost
 
     pub_reset_path = nh.advertise<std_msgs::String>("/syscommand", 5);
 
