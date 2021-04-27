@@ -130,9 +130,9 @@ namespace vloam {
         skip_frame = skip_frame_;
 
         if (!skip_frame) {
-            laserCloudCornerLast = laserCloudCornerLast_;
-            laserCloudSurfLast = laserCloudSurfLast_;
-            laserCloudFullRes = laserCloudFullRes_;
+            laserCloudCornerLast = boost::make_shared<pcl::PointCloud<PointType>>(*laserCloudCornerLast_);
+            laserCloudSurfLast = boost::make_shared<pcl::PointCloud<PointType>>(*laserCloudSurfLast_);
+            laserCloudFullRes = boost::make_shared<pcl::PointCloud<PointType>>(*laserCloudFullRes_);
         }
 
         q_wodom_curr = q_wodom_curr_;

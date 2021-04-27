@@ -92,11 +92,11 @@ namespace vloam {
         const pcl::PointCloud<PointType>::Ptr& surfPointsFlat_,
         const pcl::PointCloud<PointType>::Ptr& surfPointsLessFlat_
     ) {
-        laserCloudFullRes = laserCloud_;
-        cornerPointsSharp = cornerPointsSharp_;
-        cornerPointsLessSharp = cornerPointsLessSharp_;
-        surfPointsFlat = surfPointsFlat_;
-        surfPointsLessFlat = surfPointsLessFlat_;
+        laserCloudFullRes = boost::make_shared<pcl::PointCloud<PointType>>(*laserCloud_);
+        cornerPointsSharp = boost::make_shared<pcl::PointCloud<PointType>>(*cornerPointsSharp_);
+        cornerPointsLessSharp = boost::make_shared<pcl::PointCloud<PointType>>(*cornerPointsLessSharp_);
+        surfPointsFlat = boost::make_shared<pcl::PointCloud<PointType>>(*surfPointsFlat_);
+        surfPointsLessFlat = boost::make_shared<pcl::PointCloud<PointType>>(*surfPointsLessFlat_);
     }
 
     // undistort lidar point
@@ -260,6 +260,9 @@ namespace vloam {
                         else
                             s = 1.0;
                         ceres::CostFunction *cost_function = LidarEdgeFactor::Create(curr_point, last_point_a, last_point_b, s);
+                        // if (corner_correspondence < 20) {
+                        //     std::cout << "Corner feature No." << corner_correspondence << ", curr_point: " << curr_point << ", last_point_a: " << last_point_a << ", last_point_b: " << last_point_b;
+                        // } // TODO: remove this later (test only code)
                         problem.AddResidualBlock(cost_function, loss_function, para_q, para_t);
                         corner_correspondence++;
                     }
