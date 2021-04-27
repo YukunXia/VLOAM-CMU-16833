@@ -4,6 +4,7 @@ namespace vloam {
 
     void ScanRegistration::init(ros::NodeHandle* nh_) {
         nh = nh_;
+        nh->param<int>("loam_verbose_level", verbose_level, 1);
 
         systemInitCount = 0;
         systemInited = false;
@@ -99,9 +100,10 @@ namespace vloam {
             else
                 return;
         }
-        
-        ROS_INFO("scan registration starts");
-        t_whole.tic();
+        if (verbose_level > 1) {
+            ROS_INFO("scan registration starts");
+            t_whole.tic();
+        }
 
         std::vector<int> scanStartInd(N_SCANS, 0);
         std::vector<int> scanEndInd(N_SCANS, 0);
@@ -112,7 +114,10 @@ namespace vloam {
 
         pcl::removeNaNFromPointCloud(laserCloudIn, laserCloudIn, indices);
         removeClosedPointCloud(laserCloudIn, laserCloudIn, MINIMUM_RANGE);
-        ROS_INFO("end of closed point removal");
+
+        if (verbose_level > 1) {
+            ROS_INFO("end of closed point removal");
+        }
 
 
         int cloudSize = laserCloudIn.points.size();
@@ -129,7 +134,10 @@ namespace vloam {
         {
             endOri += 2 * M_PI;
         }
-        ROS_INFO("end Ori %f\n", endOri);
+        
+        if (verbose_level > 1) {
+            ROS_INFO("end Ori %f\n", endOri);
+        }
 
         bool halfPassed = false;
         int count = cloudSize;
@@ -218,7 +226,10 @@ namespace vloam {
         }
         
         cloudSize = count;
-        ROS_INFO("points size %d \n", cloudSize);
+
+        if (verbose_level > 1) {
+            ROS_INFO("points size %d \n", cloudSize);
+        }
 
         for (int i = 0; i < N_SCANS; i++)
         { 
@@ -227,7 +238,9 @@ namespace vloam {
             scanEndInd[i] = laserCloud->size() - 6;
         }
 
-        ROS_INFO("prepare time %f \n", t_prepare.toc());
+        if (verbose_level > 1) {
+            ROS_INFO("prepare time %f \n", t_prepare.toc());
+        }
 
         for (int i = 5; i < cloudSize - 5; i++)
         { 
@@ -379,10 +392,13 @@ namespace vloam {
 
             *surfPointsLessFlat += surfPointsLessFlatScanDS;
         }
-        ROS_INFO("sort q time %f \n", t_q_sort);
-        ROS_INFO("seperate points time %f \n", t_pts.toc());
 
+        if (verbose_level > 1) {
+            ROS_INFO("sort q time %f \n", t_q_sort);
+            ROS_INFO("seperate points time %f \n", t_pts.toc());
 
+            ROS_INFO("scan registration time %f ms *************\n", t_whole.toc());
+        }
 
     }
 
@@ -431,9 +447,9 @@ namespace vloam {
             }
         }
 
-        ROS_INFO("scan registration time %f ms *************\n", t_whole.toc());
-        if(t_whole.toc() > 100)
-            ROS_WARN("scan registration process over 100ms");
+        // ROS_INFO("scan registration time %f ms *************\n", t_whole.toc());
+        // if(t_whole.toc() > 100)
+        //     ROS_WARN("scan registration process over 100ms");
     }
 
     void ScanRegistration::output(

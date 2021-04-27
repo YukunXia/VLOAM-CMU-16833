@@ -58,6 +58,7 @@ namespace vloam {
             int cloudLabel[400000];
 
             ros::NodeHandle* nh;
+            int verbose_level;
 
             // ros::Subscriber subLaserCloud;
             ros::Publisher pubLaserCloud;

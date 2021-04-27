@@ -1,6 +1,9 @@
 <launch>
     <!-- <remap from="/velodyne_points" to="/kitti/velo/pointcloud"/> -->
     <param name="scan_line" type="int" value="64" />
+    <param name="skip_frame_number" type="int" value="5" />
+    <param name="map_pub_number" type="int" value="20" />
+    <param name="loam_verbose_level" type="int" value="1" />
 
     <!-- if 1, do mapping 10 Hz, if 2, do mapping 5 Hz. Suggest to use 1, it will adjust frequence automaticlly -->
     <!-- <param name="mapping_skip_frame" type="int" value="1" /> -->

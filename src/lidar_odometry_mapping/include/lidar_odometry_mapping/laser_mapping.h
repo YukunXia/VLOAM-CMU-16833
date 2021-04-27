@@ -132,6 +132,7 @@ namespace vloam {
             nav_msgs::Path laserAfterMappedPath;
 
             ros::NodeHandle* nh;
+            int verbose_level;
 
             float lineRes;
             float planeRes;
@@ -142,6 +143,9 @@ namespace vloam {
             TicToc t_whole;
 
             bool skip_frame;
+            int skip_frame_number;
+            int map_pub_number;
+
     };
 
 }

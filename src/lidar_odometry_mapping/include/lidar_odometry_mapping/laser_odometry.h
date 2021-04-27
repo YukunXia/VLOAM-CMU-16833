@@ -61,7 +61,7 @@ namespace vloam {
             const double DISTANCE_SQ_THRESHOLD = 25;
             const double NEARBY_SCAN = 2.5;
 
-            int skipFrameNum;
+            int skip_frame_number;
             bool systemInited;
 
             double timeCornerPointsSharp;
@@ -97,6 +97,7 @@ namespace vloam {
             Eigen::Map<Eigen::Vector3d> t_last_curr;
 
             ros::NodeHandle* nh;
+            int verbose_level;
 
             ros::Publisher pubLaserCloudCornerLast;
             ros::Publisher pubLaserCloudSurfLast;

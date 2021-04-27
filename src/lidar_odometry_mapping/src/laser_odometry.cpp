@@ -5,11 +5,12 @@ namespace vloam {
     // init before a new rosbag comes
     void LaserOdometry::init (ros::NodeHandle* nh_) {
         nh = nh_;
+        nh->param<int>("loam_verbose_level", verbose_level, 1);
 
         corner_correspondence = 0;
         plane_correspondence = 0;
 
-        skipFrameNum = 5;
+        nh->param<int>("skip_frame_number", skip_frame_number, 5);
         systemInited = false;
 
         timeCornerPointsSharp = 0;
@@ -65,6 +66,8 @@ namespace vloam {
         pubLaserCloudFullRes = nh->advertise<sensor_msgs::PointCloud2>("/velodyne_cloud_3", 100);
         pubLaserOdometry = nh->advertise<nav_msgs::Odometry>("/laser_odom_to_init", 100);
         pubLaserPath = nh->advertise<nav_msgs::Path>("/laser_odom_path", 100);
+
+        laserPath.poses.clear();
 
         frameCount = 0;
     }
@@ -143,13 +146,14 @@ namespace vloam {
 
         TicToc t_whole;
         // initializing
-        
-        ROS_INFO("LO: before solving");
 
         if (!systemInited)
         {
             systemInited = true;
-            std::cout << "Initialization finished \n";
+
+            if (verbose_level > 1) {
+                ROS_INFO("Initialization finished \n");
+            }
         }
         else
         {
@@ -367,8 +371,10 @@ namespace vloam {
                     }
                 }
 
-                ROS_INFO("coner_correspondance %d, plane_correspondence %d \n", corner_correspondence, plane_correspondence);
-                ROS_INFO("data association time %f ms \n", t_data.toc());
+                if (verbose_level > 1) {
+                    ROS_INFO("coner_correspondance %d, plane_correspondence %d \n", corner_correspondence, plane_correspondence);
+                    ROS_INFO("data association time %f ms \n", t_data.toc());
+                }
 
                 if ((corner_correspondence + plane_correspondence) < 10)
                 {
@@ -382,24 +388,27 @@ namespace vloam {
                 options.minimizer_progress_to_stdout = false;
                 ceres::Solver::Summary summary;
                 ceres::Solve(options, &problem, &summary);
-                ROS_INFO("full report: \n%s", summary.FullReport().c_str());
+                // ROS_INFO("full report: \n%s", summary.FullReport().c_str());
                 // ROS_INFO("raw: q_last_curr: w = %f x = %f, y = %f, z = %f", para_q[3], para_q[0], para_q[1], para_q[2]);
-                ROS_INFO("solver time %f ms \n", t_solver.toc());
+                if (verbose_level > 1) {
+                    ROS_INFO("solver time %f ms \n", t_solver.toc());
+                }
             }
-            ROS_INFO("optimization twice time %f \n", t_opt.toc());
+
+            if (verbose_level > 1) {
+                ROS_INFO("optimization twice time %f \n", t_opt.toc());
+            }
 
             t_w_curr = t_w_curr + q_w_curr * t_last_curr;
             q_w_curr = q_w_curr * q_last_curr;
         }
 
-        TicToc t_pub;
+        // ROS_INFO("raw: q_last_curr: w = %f x = %f, y = %f, z = %f", para_q[3], para_q[0], para_q[1], para_q[2]);
+        // ROS_INFO("q_last_curr: w = %f x = %f, y = %f, z = %f", q_last_curr.w(), q_last_curr.x(), q_last_curr.y(), q_last_curr.z());
+        // ROS_INFO("q_w_curr: w = %f x = %f, y = %f, z = %f", q_w_curr.w(), q_w_curr.x(), q_w_curr.y(), q_w_curr.z());
 
-        ROS_INFO("raw: q_last_curr: w = %f x = %f, y = %f, z = %f", para_q[3], para_q[0], para_q[1], para_q[2]);
-        ROS_INFO("q_last_curr: w = %f x = %f, y = %f, z = %f", q_last_curr.w(), q_last_curr.x(), q_last_curr.y(), q_last_curr.z());
-        ROS_INFO("q_w_curr: w = %f x = %f, y = %f, z = %f", q_w_curr.w(), q_w_curr.x(), q_w_curr.y(), q_w_curr.z());
-
-        ROS_INFO("t_last_curr: x = %f, y = %f, z = %f", t_last_curr.x(), t_last_curr.y(), t_last_curr.z());
-        ROS_INFO("t_w_curr: x = %f, y = %f, z = %f", t_w_curr.x(), t_w_curr.y(), t_w_curr.z());
+        // ROS_INFO("t_last_curr: x = %f, y = %f, z = %f", t_last_curr.x(), t_last_curr.y(), t_last_curr.z());
+        // ROS_INFO("t_w_curr: x = %f, y = %f, z = %f", t_w_curr.x(), t_w_curr.y(), t_w_curr.z());
 
         // transform corner features and plane features to the scan end point
         if (0)
@@ -440,15 +449,18 @@ namespace vloam {
         kdtreeSurfLast->setInputCloud(laserCloudSurfLast);
 
 
-        ROS_INFO("publication time %f ms \n", t_pub.toc());
-        ROS_INFO("whole laserOdometry time %f ms \n \n", t_whole.toc());
-        if(t_whole.toc() > 100)
-            ROS_WARN("odometry process over 100ms");
+        if (verbose_level > 1) {
+            ROS_INFO("whole laserOdometry time %f ms \n \n", t_whole.toc());
+            if(t_whole.toc() > 100)
+                ROS_WARN("odometry process over 100ms");
+        }
 
         frameCount++;
     }
 
     void LaserOdometry::publish () {
+        TicToc t_pub;
+
         // publish odometry
         nav_msgs::Odometry laserOdometry;
         laserOdometry.header.frame_id = "map";
@@ -471,27 +483,31 @@ namespace vloam {
         laserPath.header.frame_id = "map";
         pubLaserPath.publish(laserPath);
 
-        if (frameCount % skipFrameNum == 0)
-        {
-            frameCount = 0;
+        // if (frameCount % skip_frame_number == 0) // no need to publish
+        // {
+        //     frameCount = 0;
 
-            sensor_msgs::PointCloud2 laserCloudCornerLast2;
-            pcl::toROSMsg(*laserCloudCornerLast, laserCloudCornerLast2);
-            laserCloudCornerLast2.header.stamp = ros::Time::now();
-            laserCloudCornerLast2.header.frame_id = "camera";
-            pubLaserCloudCornerLast.publish(laserCloudCornerLast2);
+        //     sensor_msgs::PointCloud2 laserCloudCornerLast2;
+        //     pcl::toROSMsg(*laserCloudCornerLast, laserCloudCornerLast2);
+        //     laserCloudCornerLast2.header.stamp = ros::Time::now();
+        //     laserCloudCornerLast2.header.frame_id = "velo";
+        //     pubLaserCloudCornerLast.publish(laserCloudCornerLast2);
 
-            sensor_msgs::PointCloud2 laserCloudSurfLast2;
-            pcl::toROSMsg(*laserCloudSurfLast, laserCloudSurfLast2);
-            laserCloudSurfLast2.header.stamp = ros::Time::now();
-            laserCloudSurfLast2.header.frame_id = "camera";
-            pubLaserCloudSurfLast.publish(laserCloudSurfLast2);
+        //     sensor_msgs::PointCloud2 laserCloudSurfLast2;
+        //     pcl::toROSMsg(*laserCloudSurfLast, laserCloudSurfLast2);
+        //     laserCloudSurfLast2.header.stamp = ros::Time::now();
+        //     laserCloudSurfLast2.header.frame_id = "velo";
+        //     pubLaserCloudSurfLast.publish(laserCloudSurfLast2);
 
-            sensor_msgs::PointCloud2 laserCloudFullRes3;
-            pcl::toROSMsg(*laserCloudFullRes, laserCloudFullRes3);
-            laserCloudFullRes3.header.stamp = ros::Time::now();
-            laserCloudFullRes3.header.frame_id = "camera";
-            pubLaserCloudFullRes.publish(laserCloudFullRes3);
+        //     sensor_msgs::PointCloud2 laserCloudFullRes3;
+        //     pcl::toROSMsg(*laserCloudFullRes, laserCloudFullRes3);
+        //     laserCloudFullRes3.header.stamp = ros::Time::now();
+        //     laserCloudFullRes3.header.frame_id = "velo";
+        //     pubLaserCloudFullRes.publish(laserCloudFullRes3);
+        // }
+
+        if (verbose_level > 1) {
+            ROS_INFO("publication time %f ms \n", t_pub.toc());
         }
     }
 
@@ -506,12 +522,12 @@ namespace vloam {
         q_w_curr_ = q_w_curr;
         t_w_curr_ = t_w_curr;
 
-        if (frameCount % skipFrameNum == 0) {
+        if (frameCount % skip_frame_number == 0) {
             laserCloudCornerLast_ = laserCloudCornerLast;
             laserCloudSurfLast_ = laserCloudSurfLast;
             laserCloudFullRes_ = laserCloudFullRes;
             skip_frame = false;
-        }
+        } // TODO: check the meaning of skip frame. 
         else {
             skip_frame = true;
         }

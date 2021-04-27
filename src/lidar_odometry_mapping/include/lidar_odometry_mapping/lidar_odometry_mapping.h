@@ -15,10 +15,14 @@ namespace vloam {
             void scanRegistrationIO(const pcl::PointCloud<pcl::PointXYZ>& laserCloudIn);
             void laserOdometryIO();
             void laserMappingIO();
-
-            // void solveLOAM();
         
         private:
+            ros::NodeHandle* nh;
+            int verbose_level;
+
+            TicToc loam_timer;
+            double frame_time; 
+
             ScanRegistration scan_registration;
             pcl::PointCloud<PointType>::Ptr laserCloud;
             pcl::PointCloud<PointType>::Ptr cornerPointsSharp;

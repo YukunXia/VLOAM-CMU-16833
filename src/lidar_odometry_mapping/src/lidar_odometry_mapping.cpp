@@ -3,6 +3,10 @@
 namespace vloam {
 
     void LidarOdometryMapping::init(ros::NodeHandle* nh_) {
+        nh = nh_;
+
+        nh->param<int>("loam_verbose_level", verbose_level, 1);
+
         scan_registration.init(nh_);
         laser_odometry.init(nh_);
         laser_mapping.init(nh_);
@@ -28,9 +32,12 @@ namespace vloam {
     }
 
     void LidarOdometryMapping::scanRegistrationIO(const pcl::PointCloud<pcl::PointXYZ>& laserCloudIn) {
+        loam_timer.tic();
+        frame_time = 0.0;
+
         scan_registration.input(laserCloudIn);
 
-        scan_registration.publish();
+        // scan_registration.publish(); // no need to publish the point cloud feature
 
         scan_registration.output(
             laserCloud,  // 10Hz
@@ -39,9 +46,16 @@ namespace vloam {
             surfPointsFlat,  // 10Hz
             surfPointsLessFlat // 10Hz
         );
+
+        if (verbose_level > 0) {
+            ROS_INFO("Scan Registration takes %f ms \n", loam_timer.toc());
+        }
+        frame_time += loam_timer.toc();
     }
 
     void LidarOdometryMapping::laserOdometryIO() {
+        loam_timer.tic();
+
         laser_odometry.input(
             laserCloud,  // 10Hz
             cornerPointsSharp, // 10Hz
@@ -62,9 +76,16 @@ namespace vloam {
             laserCloudFullRes, // 2Hz // no change if skip_frameee
             skip_frame
         );
+
+        if (verbose_level > 0) {
+            ROS_INFO("Laser Odometry takes %f ms \n", loam_timer.toc());
+        }
+        frame_time += loam_timer.toc();
     }
 
     void LidarOdometryMapping::laserMappingIO() {
+        loam_timer.tic();
+
         laser_mapping.input(
             laserCloudCornerLast, // 2Hz 
             laserCloudSurfLast, // 2Hz 
@@ -82,6 +103,14 @@ namespace vloam {
         // laser_odometry.output(
 
         // );
+
+        if (verbose_level > 0) {
+            ROS_INFO("Laser Mapping takes %f ms \n", loam_timer.toc());
+        }
+        frame_time += loam_timer.toc();
+        if (frame_time > 100) {
+            ROS_WARN("LOAM takes %f ms (>100 ms)", frame_time);
+        }
     }
 
 

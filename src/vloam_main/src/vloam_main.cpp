@@ -31,6 +31,7 @@
 // #include <visual_odometry/ceres_cost_function.h>
 #include <visual_odometry/visual_odometry.h>
 #include <lidar_odometry_mapping/lidar_odometry_mapping.h>
+#include <lidar_odometry_mapping/tic_toc.h>
 
 #include <vloam_main/vloam_mainAction.h>
 #include <vloam_main/vloam_mainFeedback.h>
@@ -179,11 +180,9 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
         // std::cout << "Preprocessing 1 frames takes " << 1000 * time / 1.0 << " ms" << std::endl;
     }
 
-    ROS_INFO("VLOAM MAIN: LOAM Starts; %d", count);
     LOAM->scanRegistrationIO(point_cloud_pcl);
     LOAM->laserOdometryIO();
-    // LOAM->laserMappingIO();
-    ROS_INFO("VLOAM MAIN: LOAM ends;   %d", count);
+    LOAM->laserMappingIO();
 
     ++count;
 }
