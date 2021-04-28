@@ -83,6 +83,8 @@ Visualization Manager:
           Value: true
         velo_link:
           Value: true
+        velo_origin:
+          Value: true
         world:
           Value: true
       Marker Alpha: 1
@@ -101,6 +103,8 @@ Visualization Manager:
                 {}
               velo:
                 {}
+          velo_origin:
+            {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -164,7 +168,7 @@ Visualization Manager:
       Radius: 0.029999999329447746
       Shaft Diameter: 0.10000000149011612
       Shaft Length: 0.10000000149011612
-      Topic: /trajectory
+      Topic: /visual_odom_path
       Unreliable: false
       Value: true
     - Alpha: 1
@@ -194,8 +198,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 5
-        Min Value: -5
+        Max Value: 2
+        Min Value: -2
         Value: false
       Axis: Z
       Channel Name: intensity
@@ -271,7 +275,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 66.6650619506836
+      Distance: 124.70527648925781
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -279,17 +283,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 6.93046236038208
-        Y: -0.0013280212879180908
-        Z: 10.341063499450684
+        X: 8.445307731628418
+        Y: 1.7248053550720215
+        Z: -1.981568694114685
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.19539909064769745
+      Pitch: 0.11039930582046509
       Target Frame: <Fixed Frame>
-      Yaw: 3.287271738052368
+      Yaw: 0.22412317991256714
     Saved: ~
 Window Geometry:
   Displays:

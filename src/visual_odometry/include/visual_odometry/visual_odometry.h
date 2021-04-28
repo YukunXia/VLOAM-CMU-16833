@@ -26,6 +26,8 @@
 #include <visual_odometry/image_util.h>
 #include <visual_odometry/ceres_cost_function.h>
 
+#include <vloam_tf/vloam_tf.h>
+
 #ifndef VISUAL_ODOMETRY_H
 #define VISUAL_ODOMETRY_H
 
@@ -36,21 +38,24 @@ namespace vloam {
         public:
             VisualOdometry ();
 
-            void init();
+            void init(std::shared_ptr<VloamTF>& vloam_tf_);
 
-            void setUpVO();
+            void reset();
 
             void processImage(const cv::Mat& img00);
 
-            void setUpPointCloud(const Eigen::Isometry3f& imu_eigen_T_cam0, const Eigen::Isometry3f& imu_eigen_T_velo, const sensor_msgs::CameraInfoConstPtr& camera_info_msg);
+            // void setUpPointCloud(const Eigen::Isometry3f& imu_eigen_T_cam0, const Eigen::Isometry3f& imu_eigen_T_velo, const sensor_msgs::CameraInfoConstPtr& camera_info_msg);
+            void setUpPointCloud(const sensor_msgs::CameraInfoConstPtr& camera_info_msg);
 
             void processPointCloud(const sensor_msgs::PointCloud2ConstPtr &point_cloud_msg, const pcl::PointCloud<pcl::PointXYZ>& point_cloud_pcl, const bool& visualize_depth, const bool& publish_point_cloud);
 
-            tf2::Transform solveVO();
+            void solve();
 
-            void publish (const tf2::Transform& world_T_base_last);
+            void publish ();
 
         // private: 
+            std::shared_ptr<VloamTF> vloam_tf;
+
             int i, j, count;
 
             vloam::ImageUtil image_util;

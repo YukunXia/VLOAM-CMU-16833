@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   cv_bridge
   tf
+  vloam_tf
 )
 
 #find_package(Eigen3 REQUIRED)
@@ -57,7 +58,7 @@ set_target_properties(laser_mapping PROPERTIES PUBLIC_HEADER include/${PROJECT_N
 add_library(lidar_odometry_mapping SHARED
   src/lidar_odometry_mapping.cpp
 )
-target_link_libraries(lidar_odometry_mapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES} scan_registration laser_odometry laser_mapping)
+target_link_libraries(lidar_odometry_mapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES} scan_registration laser_odometry laser_mapping vloam_tf)
 set_target_properties(lidar_odometry_mapping PROPERTIES PUBLIC_HEADER include/${PROJECT_NAME}/lidar_odometry_mapping.h)
 
 install(

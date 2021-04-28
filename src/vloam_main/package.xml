@@ -64,7 +64,8 @@
   <build_depend>actionlib</build_depend>
   <build_depend>actionlib_msgs</build_depend>
   <build_depend>visual_odometry</build_depend>
-  <build_depend>visual_odomlidar_odometry_mappingetry</build_depend>
+  <build_depend>lidar_odometry_mappingy</build_depend>
+  <build_depend>vloam_tf</build_depend>
   <build_export_depend>cv_bridge</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
   <!-- <build_export_depend>sensor_msgs</build_export_depend> -->
@@ -85,6 +86,7 @@
   <exec_depend>actionlib_msgs</exec_depend>
   <exec_depend>visual_odometry</exec_depend>
   <exec_depend>lidar_odometry_mapping</exec_depend>
+  <exec_depend>vloam_tf</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

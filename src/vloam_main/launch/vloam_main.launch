@@ -1,7 +1,7 @@
 <launch>
     <include file="$(find lidar_odometry_mapping)/launch/loam_velodyne_HDL_64_kitti.launch" />
 
-    <node pkg="vloam_main" type="vloam_main" name="vloam_main" output="screen">
+    <node pkg="vloam_main" type="vloam_main_node" name="vloam_main_node" output="screen">
         <param name="rosbag_rate" type="double" value="0.5" />
         <param name="visualize_depth" type="bool" value="false" />
         <param name="publish_point_cloud" type="bool" value="true" />

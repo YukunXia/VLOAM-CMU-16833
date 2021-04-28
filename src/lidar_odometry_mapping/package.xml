@@ -26,6 +26,7 @@
   <build_depend>sensor_msgs</build_depend>
   <build_depend>tf</build_depend>
   <build_depend>image_transport</build_depend>
+  <build_depend>vloam_tf</build_depend>
   
   <run_depend>geometry_msgs</run_depend>
   <run_depend>nav_msgs</run_depend>
@@ -36,6 +37,7 @@
   <run_depend>rosbag</run_depend>
   <run_depend>tf</run_depend>
   <run_depend>image_transport</run_depend>
+  <run_depend>vloam_tf</run_depend>
 
   <export>
   </export>

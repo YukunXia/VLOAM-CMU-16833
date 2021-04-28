@@ -25,6 +25,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   roslib
   tf2
+  vloam_tf
 )
 
 ## System dependencies are found with CMake's conventions
@@ -161,6 +162,7 @@ target_link_libraries(visual_odometry
     ${CERES_LIBRARIES}
     image_util
     point_cloud_util
+    vloam_tf
 )
 set_target_properties(visual_odometry PROPERTIES PUBLIC_HEADER include/${PROJECT_NAME}/visual_odometry.h)
 

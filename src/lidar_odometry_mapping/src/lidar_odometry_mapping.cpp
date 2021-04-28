@@ -2,9 +2,10 @@
 
 namespace vloam {
 
-    void LidarOdometryMapping::init(ros::NodeHandle* nh_) {
-        nh = nh_;
+    void LidarOdometryMapping::init(std::shared_ptr<VloamTF>& vloam_tf_, ros::NodeHandle* nh_) {
+        vloam_tf = vloam_tf_;
 
+        nh = nh_;
         nh->param<int>("loam_verbose_level", verbose_level, 1);
 
         scan_registration.init(nh_);

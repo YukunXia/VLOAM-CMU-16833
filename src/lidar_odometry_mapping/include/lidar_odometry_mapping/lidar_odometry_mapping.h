@@ -4,11 +4,13 @@
 #include <lidar_odometry_mapping/laser_odometry.h>
 #include <lidar_odometry_mapping/laser_mapping.h>
 
+#include <vloam_tf/vloam_tf.h> 
+
 namespace vloam {
 
     class LidarOdometryMapping {
         public:
-            void init(ros::NodeHandle* nh_);
+            void init(std::shared_ptr<VloamTF>& vloam_tf_, ros::NodeHandle* nh_);
 
             void reset();
 
@@ -17,6 +19,8 @@ namespace vloam {
             void laserMappingIO();
         
         private:
+            std::shared_ptr<VloamTF> vloam_tf;
+
             ros::NodeHandle* nh;
             int verbose_level;
 
