@@ -1,31 +1,19 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(visual_odometry)
+project(vloam_tf)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++14 -O3)
-# TODO: check if -O3 is needed -> Yes, Preprocessing 2 frames took 1000ms without -O3, but now takes 63ms with -O3 
+# add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(OpenCV 4.5.1 REQUIRED)
-
-find_package(PCL 1.2 REQUIRED)
-include_directories(${PCL_INCLUDE_DIRS})
-link_directories(${PCL_LIBRARY_DIRS})
-add_definitions(${PCL_DEFINITIONS})
-
-# find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-find_package(Ceres REQUIRED PATHS "/usr/local/lib/cmake/Ceres/")
-
 find_package(catkin REQUIRED COMPONENTS
-  cv_bridge
+  geometry_msgs
   roscpp
-  sensor_msgs
-  std_msgs
-  roslib
   tf2
-  vloam_tf
+  tf2_eigen
+  tf2_geometry_msgs
+  tf2_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -85,7 +73,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   sensor_msgs#   std_msgs
+#   geometry_msgs#   tf2_geometry_msgs
 # )
 
 ################################################
@@ -119,9 +107,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
  INCLUDE_DIRS include
-#  LIBRARIES visual_odometry
- CATKIN_DEPENDS cv_bridge roscpp sensor_msgs std_msgs
- DEPENDS EIGEN3 PCL
+#  LIBRARIES vloam_tf
+#  CATKIN_DEPENDS geometry_msgs roscpp tf2 tf2_eigen tf2_geometry_msgs tf2_ros
 #  DEPENDS system_lib
 )
 
@@ -134,37 +121,14 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${OpenCV_INCLUDE_DIRS}
-  # ${EIGEN3_INCLUDE_DIR}
 )
 
-# Declare a C++ library
-add_library(image_util SHARED
-src/image_util.cpp
+## Declare a C++ library
+add_library(vloam_tf
+  src/vloam_tf.cpp
 )
-target_link_libraries(image_util ${catkin_LIBRARIES})
-set_target_properties(image_util PROPERTIES PUBLIC_HEADER include/${PROJECT_NAME}/image_util.h)
-
-
-add_library(point_cloud_util SHARED
-  src/point_cloud_util.cpp
-)
-target_link_libraries(point_cloud_util ${catkin_LIBRARIES})
-set_target_properties(point_cloud_util PROPERTIES PUBLIC_HEADER include/${PROJECT_NAME}/point_cloud_util.h)
-
-add_library(visual_odometry SHARED
-  src/visual_odometry.cpp
-)
-target_link_libraries(visual_odometry 
-    ${catkin_LIBRARIES}
-    ${OpenCV_LIBS}
-    Eigen3::Eigen
-    ${CERES_LIBRARIES}
-    image_util
-    point_cloud_util
-    vloam_tf
-)
-set_target_properties(visual_odometry PROPERTIES PUBLIC_HEADER include/${PROJECT_NAME}/visual_odometry.h)
+target_link_libraries(vloam_tf ${catkin_LIBRARIES})
+set_target_properties(vloam_tf PROPERTIES PUBLIC_HEADER include/${PROJECT_NAME}/vloam_tf.h)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -174,6 +138,7 @@ set_target_properties(visual_odometry PROPERTIES PUBLIC_HEADER include/${PROJECT
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
+# add_executable(${PROJECT_NAME}_node src/vloam_tf_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -186,6 +151,9 @@ set_target_properties(visual_odometry PROPERTIES PUBLIC_HEADER include/${PROJECT
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
+# target_link_libraries(${PROJECT_NAME}_node
+#   ${catkin_LIBRARIES}
+# )
 
 #############
 ## Install ##
@@ -215,7 +183,7 @@ set_target_properties(visual_odometry PROPERTIES PUBLIC_HEADER include/${PROJECT
 #   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
 # )
 
-# Mark cpp header files for installation
+## Mark cpp header files for installation
 install(
   DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
@@ -237,7 +205,7 @@ install(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_visual_odometry.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_vloam_tf.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

@@ -118,6 +118,7 @@ void init() {
     descriptors.clear();
     descriptors.resize(2);
     matches.clear();
+    visualPath.poses.clear();
 
     point_cloud_utils.clear();
     point_cloud_utils.resize(2);
@@ -348,11 +349,11 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
         // publish odometry
         
         nav_msgs::Odometry visualOdometry;
-        visualOdometry.header.frame_id = "/map";
-        visualOdometry.child_frame_id = "/velo";
-        visualOdometry.header.stamp = image_msg->header.stamp;
-        Eigen::Quaterniond q_wodom_curr(world_T_base_last.getRotation()); 
-        Eigen::Vector3d t_wodom_curr(world_T_base_last.getOrigin()); 
+        visualOdometry.header.frame_id = "map";
+        visualOdometry.child_frame_id = "camera_odom";
+        visualOdometry.header.stamp = ros::Time::now();//image_msg->header.stamp;
+        Eigen::Quaterniond q_wodom_curr(world_T_base_last.getRotation()); // wodom to cam
+        Eigen::Vector3d t_wodom_curr(world_T_base_last.getOrigin()); // wodom to cam
         visualOdometry.pose.pose.orientation.x = q_wodom_curr.x();
         visualOdometry.pose.pose.orientation.y = q_wodom_curr.y();
         visualOdometry.pose.pose.orientation.z = q_wodom_curr.z();
@@ -366,7 +367,7 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
         visualPose.header = visualOdometry.header;
         visualPose.pose = visualOdometry.pose.pose;
         visualPath.header.stamp = visualOdometry.header.stamp;
-        visualPath.header.frame_id = "/map";
+        visualPath.header.frame_id = "map";
         visualPath.poses.push_back(visualPose);
         pubvisualPath.publish(visualPath);
 

@@ -325,7 +325,7 @@ namespace vloam {
         // std::cout << neighbors[1].head(3).transpose() << std::endl;
         // std::cout << neighbors[2].head(3).transpose() << "\n" << std::endl;
 
-        float z = (neighbors[0](2)*neighbors[0](3) + neighbors[1](2)*neighbors[1](3) + neighbors[2](2)*neighbors[2](3))/(0.0001f + neighbors[0](3) + neighbors[1](3) + neighbors[2](3));  // TODO: weighted distance -> Done? need to test
+        float z = (neighbors[0](2)*neighbors[1](3)*neighbors[2](3) + neighbors[1](2)*neighbors[0](3)*neighbors[2](3) + neighbors[2](2)*neighbors[0](3)*neighbors[1](3))/(0.0001f + neighbors[1](3)*neighbors[2](3) + neighbors[0](3)*neighbors[2](3) + neighbors[0](3)*neighbors[1](3));  // TODO: weighted distance -> Done? need to test
         assert(z > 0);
         return z;
         // // naive averaging is already providing good estimation => maybe just check the current bucket_depth is also a fast and good estimation

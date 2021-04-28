@@ -1,0 +1,23 @@
+<launch>
+    <!-- <remap from="/velodyne_points" to="/kitti/velo/pointcloud"/> -->
+    <param name="scan_line" type="int" value="64" />
+    <param name="skip_frame_number" type="int" value="5" />
+    <param name="map_pub_number" type="int" value="20" />
+    <param name="loam_verbose_level" type="int" value="1" />
+
+    <!-- if 1, do mapping 10 Hz, if 2, do mapping 5 Hz. Suggest to use 1, it will adjust frequence automaticlly -->
+    <!-- <param name="mapping_skip_frame" type="int" value="1" /> -->
+    <!-- unused by any code -->
+
+    <!-- remove too closed points -->
+    <param name="minimum_range" type="double" value="5"/>
+
+    <param name="mapping_line_resolution" type="double" value="0.4"/>
+    <param name="mapping_plane_resolution" type="double" value="0.8"/>
+
+    <arg name="rviz" default="false" />
+    <group if="$(arg rviz)">
+        <node launch-prefix="nice" pkg="rviz" type="rviz" name="rviz" args="-d $(find lidar_odometry_mapping)/rviz_cfg/lidar_odometry_mapping.rviz" />
+    </group>
+
+</launch>
