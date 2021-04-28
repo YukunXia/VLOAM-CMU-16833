@@ -63,7 +63,7 @@ namespace vloam {
         pubLaserCloudMap = nh->advertise<sensor_msgs::PointCloud2>("/laser_cloud_map", 100);
         pubLaserCloudFullRes = nh->advertise<sensor_msgs::PointCloud2>("/velodyne_cloud_registered", 100);
         pubOdomAftMapped = nh->advertise<nav_msgs::Odometry>("/aft_mapped_to_init", 100);
-        pubOdomAftMappedHighFrec = nh->advertise<nav_msgs::Odometry>("/aft_mapped_to_init_high_frec", 100);
+        // pubOdomAftMappedHighFrec = nh->advertise<nav_msgs::Odometry>("/aft_mapped_to_init_high_frec", 100);
         pubLaserAfterMappedPath = nh->advertise<nav_msgs::Path>("/aft_mapped_path", 100);
 
         laserAfterMappedPath.poses.clear();
@@ -715,39 +715,6 @@ namespace vloam {
         q.setZ(q_w_curr.z());
         transform.setRotation(q);
         br.sendTransform(tf::StampedTransform(transform, odomAftMapped.header.stamp, "map", "aft_mapped"));
-
-        // // if (true) { // TODO: globally config published message and publish time
-        // nav_msgs::Odometry odomAftMapped;
-        // odomAftMapped.header.frame_id = "map";
-        // odomAftMapped.child_frame_id = "aft_mapped";
-        // odomAftMapped.header.stamp = ros::Time::now();
-        // odomAftMapped.pose.pose.orientation.x = q_w_curr.x();
-        // odomAftMapped.pose.pose.orientation.y = q_w_curr.y();
-        // odomAftMapped.pose.pose.orientation.z = q_w_curr.z();
-        // odomAftMapped.pose.pose.orientation.w = q_w_curr.w();
-        // odomAftMapped.pose.pose.position.x = t_w_curr.x();
-        // odomAftMapped.pose.pose.position.y = t_w_curr.y();
-        // odomAftMapped.pose.pose.position.z = t_w_curr.z();
-        // pubOdomAftMappedHighFrec.publish(odomAftMapped);
-        // // }
-
-        //publish surround map for every 5 frame
-        // if (frameCount % skip_frame_number == 0)
-        // {
-        //     laserCloudSurround->clear();
-        //     for (int i = 0; i < laserCloudSurroundNum; i++)
-        //     {
-        //         int ind = laserCloudSurroundInd[i];
-        //         *laserCloudSurround += *laserCloudCornerArray[ind];
-        //         *laserCloudSurround += *laserCloudSurfArray[ind];
-        //     }
-
-        //     sensor_msgs::PointCloud2 laserCloudSurround3;
-        //     pcl::toROSMsg(*laserCloudSurround, laserCloudSurround3);
-        //     laserCloudSurround3.header.stamp = ros::Time::now(); // TODO: globally config time stamp
-        //     laserCloudSurround3.header.frame_id = "map";
-        //     pubLaserCloudSurround.publish(laserCloudSurround3);
-        // }
 
         if ((frameCount*skip_frame_number) % map_pub_number == 0) // 0.5 Hz? 
         {

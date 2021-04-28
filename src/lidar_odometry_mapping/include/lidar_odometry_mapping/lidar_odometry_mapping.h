@@ -16,6 +16,7 @@ namespace vloam {
 
             void scanRegistrationIO(const pcl::PointCloud<pcl::PointXYZ>& laserCloudIn);
             void laserOdometryIO();
+            // void laserOdometryIO(const tf2::Transform& cam0_curr_T_cam0_last);
             void laserMappingIO();
         
         private:

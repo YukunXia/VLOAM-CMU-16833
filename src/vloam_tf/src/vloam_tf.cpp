@@ -50,7 +50,7 @@ namespace vloam {
         velo_T_cam0 = imu_T_velo.inverse() * imu_T_cam0;
     }
 
-    geometry_msgs::TransformStamped  VloamTF::VO2Base(const tf2::Transform& cam0_curr_T_cam0_last) {
+    void VloamTF::VO2BaseVelo(const tf2::Transform& cam0_curr_T_cam0_last) {
         // get T_base_last^base_curr
         velo_last_T_velo_curr = velo_T_cam0 * cam0_curr_T_cam0_last.inverse() * velo_T_cam0.inverse(); // odom for velodyne
         base_last_T_base_curr = base_T_cam0 * cam0_curr_T_cam0_last.inverse() * base_T_cam0.inverse();
@@ -67,8 +67,6 @@ namespace vloam {
             world_T_base_last *= base_last_T_base_curr; // after update, last becomes the curr
         world_stamped_tf_base.header.stamp = ros::Time::now();
         world_stamped_tf_base.transform = tf2::toMsg(world_T_base_last);
-
-        return world_stamped_tf_base;
     }
 
 }

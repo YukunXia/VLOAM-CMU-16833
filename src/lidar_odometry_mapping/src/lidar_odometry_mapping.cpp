@@ -8,9 +8,9 @@ namespace vloam {
         nh = nh_;
         nh->param<int>("loam_verbose_level", verbose_level, 1);
 
-        scan_registration.init(nh_);
-        laser_odometry.init(nh_);
-        laser_mapping.init(nh_);
+        scan_registration.init(nh);
+        laser_odometry.init(vloam_tf, nh);
+        laser_mapping.init(nh);
 
         // subLaserCloud = nh->subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 100, &LidarOdometryMapping::laserCloudHandler, this);
 

@@ -53,24 +53,6 @@ namespace vloam {
             matches = image_util.matchDescriptors(descriptors[1-i], descriptors[i]); // first one is prev image, second one is curr image
     }
 
-    // void VisualOdometry::setUpPointCloud(const Eigen::Isometry3f& imu_eigen_T_cam0, const Eigen::Isometry3f& imu_eigen_T_velo, const sensor_msgs::CameraInfoConstPtr& camera_info_msg) {
-    //     point_cloud_utils[0].cam_T_velo = imu_eigen_T_cam0.matrix().inverse() * imu_eigen_T_velo.matrix();
-    //     point_cloud_utils[1].cam_T_velo = imu_eigen_T_cam0.matrix().inverse() * imu_eigen_T_velo.matrix();
-
-    //     // point from unrectified camera 00 to rectified camera 00
-    //     for (j=0; j<9; ++j) {
-    //         point_cloud_utils[0].rect0_T_cam(j/3, j%3) = camera_info_msg->R[j]; // TODO: optimize this code later
-    //         point_cloud_utils[1].rect0_T_cam(j/3, j%3) = camera_info_msg->R[j]; // assume P doesn't change
-    //     }
-
-    //     // point from rectified camera 00 to image coordinate
-    //     for (j=0; j<12; ++j) {
-    //         point_cloud_utils[0].P_rect0(j/4, j%4) = camera_info_msg->P[j]; // TODO: optimize this code later
-    //         point_cloud_utils[1].P_rect0(j/4, j%4) = camera_info_msg->P[j]; // assume P doesn't change
-    //     }
-    //     // std::cout << "\nP_rect0 = \n" << point_cloud_utils[0].P_rect0 << std::endl; 
-    // }
-
     void VisualOdometry::setUpPointCloud(const sensor_msgs::CameraInfoConstPtr& camera_info_msg) {
         point_cloud_utils[0].cam_T_velo = vloam_tf->imu_eigen_T_cam0.matrix().inverse() * vloam_tf->imu_eigen_T_velo.matrix();
         point_cloud_utils[1].cam_T_velo = vloam_tf->imu_eigen_T_cam0.matrix().inverse() * vloam_tf->imu_eigen_T_velo.matrix();
@@ -201,27 +183,11 @@ namespace vloam {
     }
 
     void VisualOdometry::publish () {
-        // get T_base_last^base_curr
-        vloam_tf->velo_last_T_velo_curr = vloam_tf->velo_T_cam0 * cam0_curr_T_cam0_last.inverse() * vloam_tf->velo_T_cam0.inverse(); // odom for velodyne
-        vloam_tf->base_last_T_base_curr = vloam_tf->base_T_cam0 * cam0_curr_T_cam0_last.inverse() * vloam_tf->base_T_cam0.inverse();
-
-        // get T_world^curr = T_last^curr * T_world^last
-        geometry_msgs::Transform temp = tf2::toMsg(vloam_tf->base_last_T_base_curr); // TODO: check better solution
-        if (!std::isnan(temp.translation.x) and 
-            !std::isnan(temp.translation.y) and 
-            !std::isnan(temp.translation.z) and
-            !std::isnan(temp.rotation.x) and
-            !std::isnan(temp.rotation.y) and
-            !std::isnan(temp.rotation.z) and
-            !std::isnan(temp.rotation.w)) // avoid nan at the first couple steps
-            vloam_tf->world_T_base_last *= vloam_tf->base_last_T_base_curr; // after update, last becomes the curr
-        vloam_tf->world_stamped_tf_base.header.stamp = ros::Time::now();
-        vloam_tf->world_stamped_tf_base.transform = tf2::toMsg(vloam_tf->world_T_base_last);
-
+        vloam_tf->VO2BaseVelo(cam0_curr_T_cam0_last);
         vloam_tf->dynamic_broadcaster.sendTransform(vloam_tf->world_stamped_tf_base);
 
         visualOdometry.header.frame_id = "map";
-        visualOdometry.child_frame_id = "VO";
+        visualOdometry.child_frame_id = "visual_odom";
         visualOdometry.header.stamp = ros::Time::now();//image_msg->header.stamp;
         Eigen::Quaterniond q_wodom_curr(vloam_tf->world_T_base_last.getRotation()); // wodom to cam
         Eigen::Vector3d t_wodom_curr(vloam_tf->world_T_base_last.getOrigin()); // wodom to cam

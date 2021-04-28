@@ -48,7 +48,7 @@
 ros::NodeHandle* nh_ptr;
 
 double rosbag_rate;
-bool visualize_depth, publish_point_cloud;
+bool visualize_depth, publish_point_cloud, detach_VO_LO;
 
 typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::CameraInfo, sensor_msgs::PointCloud2> MySyncPolicy;
 std::shared_ptr<message_filters::Subscriber<sensor_msgs::Image>> sub_image00_ptr;
@@ -107,7 +107,7 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
     // ROS_INFO("point cloud width=%d, height=%d", point_cloud_pcl.width, point_cloud_pcl.height); // typical output "point cloud width=122270, height=1053676" // TODO: check why height is so large
     VO->processPointCloud(point_cloud_msg, point_cloud_pcl, visualize_depth, publish_point_cloud);
     
-    if (count > 1) {
+    if (count > 0) {
         // Section 5: Solve and Publish VO
         VO->solve();
         VO->publish();

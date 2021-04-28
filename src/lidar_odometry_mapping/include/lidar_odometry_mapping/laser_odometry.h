@@ -18,9 +18,11 @@
 #include <mutex>
 #include <queue>
 
-#include "lidar_odometry_mapping/common.h"
-#include "lidar_odometry_mapping/tic_toc.h"
-#include "lidar_odometry_mapping/lidarFactor.hpp"
+#include <lidar_odometry_mapping/common.h>
+#include <lidar_odometry_mapping/tic_toc.h>
+#include <lidar_odometry_mapping/lidarFactor.hpp>
+
+#include <vloam_tf/vloam_tf.h>
 
 namespace vloam {
 
@@ -28,7 +30,7 @@ namespace vloam {
         public:
             LaserOdometry() : q_last_curr(para_q), t_last_curr(para_t) {}
 
-            void init (ros::NodeHandle* nh_);
+            void init (std::shared_ptr<VloamTF>& vloam_tf_, ros::NodeHandle* nh_);
 
             // void reset ();
 
@@ -96,8 +98,11 @@ namespace vloam {
             Eigen::Map<Eigen::Quaterniond> q_last_curr;
             Eigen::Map<Eigen::Vector3d> t_last_curr;
 
+            std::shared_ptr<VloamTF> vloam_tf;
+
             ros::NodeHandle* nh;
             int verbose_level;
+            bool detach_VO_LO;
 
             ros::Publisher pubLaserCloudCornerLast;
             ros::Publisher pubLaserCloudSurfLast;
