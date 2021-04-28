@@ -28,9 +28,13 @@ namespace vloam {
 
     class LaserOdometry {
         public:
-            LaserOdometry() : q_last_curr(para_q), t_last_curr(para_t) {}
+            LaserOdometry() : 
+                q_last_curr(para_q), 
+                t_last_curr(para_t),
+                nh("laser_odometry_node")
+            {}
 
-            void init (std::shared_ptr<VloamTF>& vloam_tf_, ros::NodeHandle* nh_);
+            void init (std::shared_ptr<VloamTF>& vloam_tf_);
 
             // void reset ();
 
@@ -100,7 +104,7 @@ namespace vloam {
 
             std::shared_ptr<VloamTF> vloam_tf;
 
-            ros::NodeHandle* nh;
+            ros::NodeHandle nh;
             int verbose_level;
             bool detach_VO_LO;
 

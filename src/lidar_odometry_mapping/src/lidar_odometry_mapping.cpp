@@ -2,15 +2,14 @@
 
 namespace vloam {
 
-    void LidarOdometryMapping::init(std::shared_ptr<VloamTF>& vloam_tf_, ros::NodeHandle* nh_) {
+    void LidarOdometryMapping::init(std::shared_ptr<VloamTF>& vloam_tf_) {
         vloam_tf = vloam_tf_;
 
-        nh = nh_;
-        nh->param<int>("loam_verbose_level", verbose_level, 1);
+        nh.param<int>("loam_verbose_level", verbose_level, 1);
 
-        scan_registration.init(nh);
-        laser_odometry.init(vloam_tf, nh);
-        laser_mapping.init(nh);
+        scan_registration.init();
+        laser_odometry.init(vloam_tf);
+        laser_mapping.init();
 
         // subLaserCloud = nh->subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 100, &LidarOdometryMapping::laserCloudHandler, this);
 

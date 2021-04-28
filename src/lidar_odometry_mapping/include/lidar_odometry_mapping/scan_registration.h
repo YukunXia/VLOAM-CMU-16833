@@ -26,9 +26,11 @@ namespace vloam {
 
     class ScanRegistration {
         public:
-            ScanRegistration(){}
+            ScanRegistration() :
+                nh("scan_registration_node")
+            {}
             
-            void init (ros::NodeHandle* nh_);
+            void init ();
             void reset();
             void input(const pcl::PointCloud<pcl::PointXYZ>& laserCloudIn_);
             void publish();
@@ -57,7 +59,7 @@ namespace vloam {
             int cloudNeighborPicked[400000];
             int cloudLabel[400000];
 
-            ros::NodeHandle* nh;
+            ros::NodeHandle nh;
             int verbose_level;
 
             // ros::Subscriber subLaserCloud;

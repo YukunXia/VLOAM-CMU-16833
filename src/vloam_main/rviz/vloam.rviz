@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /PointCloud21/Autocompute Value Bounds1
         - /PointCloud22/Autocompute Value Bounds1
+        - /Path3
       Splitter Ratio: 0.5190311670303345
     Tree Height: 883
   - Class: rviz/Selection
@@ -226,7 +227,7 @@ Visualization Manager:
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
-      Color: 255; 0; 233
+      Color: 0; 204; 255
       Enabled: true
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
@@ -275,7 +276,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 124.70527648925781
+      Distance: 168.5945281982422
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -283,17 +284,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 8.445307731628418
-        Y: 1.7248053550720215
-        Z: -1.981568694114685
+        X: 46.78694152832031
+        Y: 21.182174682617188
+        Z: -15.612089157104492
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.11039930582046509
+      Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 0.22412317991256714
+      Yaw: 0.13412310183048248
     Saved: ~
 Window Geometry:
   Displays:

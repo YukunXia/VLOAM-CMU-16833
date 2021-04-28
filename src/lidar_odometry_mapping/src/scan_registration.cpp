@@ -2,17 +2,18 @@
 
 namespace vloam {
 
-    void ScanRegistration::init(ros::NodeHandle* nh_) {
-        nh = nh_;
-        nh->param<int>("loam_verbose_level", verbose_level, 1);
+    void ScanRegistration::init() {
+        ros::param::get("loam_verbose_level", verbose_level);
 
         systemInitCount = 0;
         systemInited = false;
         N_SCANS = 0;
 
-        nh->param<int>("scan_line", N_SCANS, 16);
+        if (!ros::param::get("scan_line", N_SCANS))
+            ROS_BREAK();
 
-        nh->param<double>("minimum_range", MINIMUM_RANGE, 0.1);
+        if (!ros::param::get("minimum_range", MINIMUM_RANGE))
+            ROS_BREAK();
 
         ROS_INFO("scan line number %d \n", N_SCANS);
 
@@ -24,11 +25,11 @@ namespace vloam {
 
         // // NOTE: publishers and subscribers won't necessarily used, but are kept for forward compatibility
         // subLaserCloud = nh->subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 100, &ScanRegistration::laserCloudHandler, this);
-        pubLaserCloud = nh->advertise<sensor_msgs::PointCloud2>("/velodyne_cloud_2", 100);
-        pubCornerPointsSharp = nh->advertise<sensor_msgs::PointCloud2>("/laser_cloud_sharp", 100);
-        pubCornerPointsLessSharp = nh->advertise<sensor_msgs::PointCloud2>("/laser_cloud_less_sharp", 100);
-        pubSurfPointsFlat = nh->advertise<sensor_msgs::PointCloud2>("/laser_cloud_flat", 100);
-        pubSurfPointsLessFlat = nh->advertise<sensor_msgs::PointCloud2>("/laser_cloud_less_flat", 100);
+        pubLaserCloud = nh.advertise<sensor_msgs::PointCloud2>("/velodyne_cloud_2", 100);
+        pubCornerPointsSharp = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_sharp", 100);
+        pubCornerPointsLessSharp = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_less_sharp", 100);
+        pubSurfPointsFlat = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_flat", 100);
+        pubSurfPointsLessFlat = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_less_flat", 100);
         // pubRemovePoints = nh->advertise<sensor_msgs::PointCloud2>("/laser_remove_points", 100);
 
         PUB_EACH_LINE = false;

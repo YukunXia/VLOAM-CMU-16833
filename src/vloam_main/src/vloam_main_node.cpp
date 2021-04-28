@@ -79,7 +79,7 @@ void init() {
 
     vloam_tf->init();
     VO->init(vloam_tf);
-    LOAM->init(vloam_tf, nh_ptr);
+    LOAM->init(vloam_tf);
 }
 
 void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::CameraInfo::ConstPtr& camera_info_msg, const sensor_msgs::PointCloud2::ConstPtr& point_cloud_msg) {
@@ -145,7 +145,7 @@ void execute(const vloam_main::vloam_mainGoalConstPtr& goal, Server* as) {
 
 int main(int argc, char** argv) {
 
-    ros::init(argc, argv, "estimation_in_small_dataset");
+    ros::init(argc, argv, "vloam_main_node");
 
     ros::NodeHandle nh_private = ros::NodeHandle("~");
     nh_private.getParam("rosbag_rate", rosbag_rate);
