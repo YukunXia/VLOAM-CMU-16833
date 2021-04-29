@@ -38,10 +38,11 @@ namespace vloam {
                 laserCloudCenHeight(10), 
                 laserCloudCenDepth(5), 
                 q_w_curr(parameters),
-                t_w_curr(parameters + 4)
+                t_w_curr(parameters + 4),
+                nh("laser_mapping_node")
                 {}
 
-            void init (ros::NodeHandle* nh_);
+            void init ();
 
             void reset();
             void input(
@@ -131,7 +132,7 @@ namespace vloam {
 
             nav_msgs::Path laserAfterMappedPath;
 
-            ros::NodeHandle* nh;
+            ros::NodeHandle nh;
             int verbose_level;
 
             float lineRes;

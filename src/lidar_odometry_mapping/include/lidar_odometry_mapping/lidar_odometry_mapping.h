@@ -10,7 +10,9 @@ namespace vloam {
 
     class LidarOdometryMapping {
         public:
-            void init(std::shared_ptr<VloamTF>& vloam_tf_, ros::NodeHandle* nh_);
+            LidarOdometryMapping() : nh("lidar_odometry_mapping_node") {}
+
+            void init(std::shared_ptr<VloamTF>& vloam_tf_);
 
             void reset();
 
@@ -22,7 +24,7 @@ namespace vloam {
         private:
             std::shared_ptr<VloamTF> vloam_tf;
 
-            ros::NodeHandle* nh;
+            ros::NodeHandle nh;
             int verbose_level;
 
             TicToc loam_timer;

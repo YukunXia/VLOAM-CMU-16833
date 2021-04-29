@@ -3,17 +3,20 @@
 namespace vloam {
 
     // init before a new rosbag comes
-    void LaserOdometry::init (std::shared_ptr<VloamTF>& vloam_tf_, ros::NodeHandle* nh_) {
+    void LaserOdometry::init (std::shared_ptr<VloamTF>& vloam_tf_) {
         vloam_tf = vloam_tf_;
 
-        nh = nh_;
-        nh->param<int>("loam_verbose_level", verbose_level, 1);
-        nh->param<bool>("detach_VO_LO", detach_VO_LO, true);
+        if (!ros::param::get("loam_verbose_level", verbose_level))
+            ROS_BREAK();        
+        if (!ros::param::get("detach_VO_LO", detach_VO_LO))
+            ROS_BREAK();
 
         corner_correspondence = 0;
         plane_correspondence = 0;
 
-        nh->param<int>("skip_frame_number", skip_frame_number, 5);
+        if (!ros::param::get("skip_frame_number", skip_frame_number))
+            ROS_BREAK();        
+
         systemInited = false;
 
         timeCornerPointsSharp = 0;
@@ -64,11 +67,11 @@ namespace vloam {
         // ROS_INFO("INIT2: q_last_curr: w = %f x = %f, y = %f, z = %f", q_last_curr2.w(), q_last_curr2.x(), q_last_curr2.y(), q_last_curr2.z());
         // ROS_INFO("INIT2: t_last_curr: x = %f, y = %f, z = %f", t_last_curr2.x(), t_last_curr2.y(), t_last_curr2.z());
 
-        pubLaserCloudCornerLast = nh->advertise<sensor_msgs::PointCloud2>("/laser_cloud_corner_last", 100);
-        pubLaserCloudSurfLast = nh->advertise<sensor_msgs::PointCloud2>("/laser_cloud_surf_last", 100);
-        pubLaserCloudFullRes = nh->advertise<sensor_msgs::PointCloud2>("/velodyne_cloud_3", 100);
-        pubLaserOdometry = nh->advertise<nav_msgs::Odometry>("/laser_odom_to_init", 100);
-        pubLaserPath = nh->advertise<nav_msgs::Path>("/laser_odom_path", 100);
+        pubLaserCloudCornerLast = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_corner_last", 100);
+        pubLaserCloudSurfLast = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_surf_last", 100);
+        pubLaserCloudFullRes = nh.advertise<sensor_msgs::PointCloud2>("/velodyne_cloud_3", 100);
+        pubLaserOdometry = nh.advertise<nav_msgs::Odometry>("/laser_odom_to_init", 100);
+        pubLaserPath = nh.advertise<nav_msgs::Path>("/laser_odom_path", 100);
 
         laserPath.poses.clear();
 
@@ -191,7 +194,7 @@ namespace vloam {
                     // new (&t_last_curr) Eigen::Map<Eigen::Vector3d>(para_t);
                 }
 
-                if (verbose_level > 1 and detach_VO_LO) {
+                if (verbose_level > 1) {
                     ROS_INFO("\nq_last_curr.x = %f, velo_last_T_velo_curr.q.x = %f", para_q[0], vloam_tf->velo_last_T_velo_curr.getRotation().x());
                     ROS_INFO("q_last_curr.y = %f, velo_last_T_velo_curr.q.y = %f", para_q[1], vloam_tf->velo_last_T_velo_curr.getRotation().y());
                     ROS_INFO("q_last_curr.z = %f, velo_last_T_velo_curr.q.z = %f", para_q[2], vloam_tf->velo_last_T_velo_curr.getRotation().z());

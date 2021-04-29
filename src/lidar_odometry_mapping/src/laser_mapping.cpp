@@ -2,9 +2,9 @@
 
 namespace vloam {
 
-    void LaserMapping::init (ros::NodeHandle* nh_) {
-        nh = nh_;
-        nh->param<int>("loam_verbose_level", verbose_level, 1);
+    void LaserMapping::init () {
+        if (!ros::param::get("loam_verbose_level", verbose_level))
+            ROS_BREAK();
 
         frameCount = 0;
 
@@ -52,19 +52,21 @@ namespace vloam {
         t_wodom_curr = Eigen::Vector3d(0, 0, 0);
 
         lineRes = 0;
-        planeRes = 0;
-        nh->param<float>("mapping_line_resolution", lineRes, 0.4);
-        nh->param<float>("mapping_plane_resolution", planeRes, 0.8);
+        planeRes = 0;        
+        if (!ros::param::get("mapping_line_resolution", lineRes))
+            ROS_BREAK();
+        if (!ros::param::get("mapping_plane_resolution", planeRes))
+            ROS_BREAK();
         ROS_INFO("line resolution %f plane resolution %f \n", lineRes, planeRes);
         downSizeFilterCorner.setLeafSize(lineRes, lineRes,lineRes);
         downSizeFilterSurf.setLeafSize(planeRes, planeRes, planeRes);
 
-        pubLaserCloudSurround = nh->advertise<sensor_msgs::PointCloud2>("/laser_cloud_surround", 100);
-        pubLaserCloudMap = nh->advertise<sensor_msgs::PointCloud2>("/laser_cloud_map", 100);
-        pubLaserCloudFullRes = nh->advertise<sensor_msgs::PointCloud2>("/velodyne_cloud_registered", 100);
-        pubOdomAftMapped = nh->advertise<nav_msgs::Odometry>("/aft_mapped_to_init", 100);
+        pubLaserCloudSurround = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_surround", 100);
+        pubLaserCloudMap = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_map", 100);
+        pubLaserCloudFullRes = nh.advertise<sensor_msgs::PointCloud2>("/velodyne_cloud_registered", 100);
+        pubOdomAftMapped = nh.advertise<nav_msgs::Odometry>("/aft_mapped_to_init", 100);
         // pubOdomAftMappedHighFrec = nh->advertise<nav_msgs::Odometry>("/aft_mapped_to_init_high_frec", 100);
-        pubLaserAfterMappedPath = nh->advertise<nav_msgs::Path>("/aft_mapped_path", 100);
+        pubLaserAfterMappedPath = nh.advertise<nav_msgs::Path>("/aft_mapped_path", 100);
 
         laserAfterMappedPath.poses.clear();
 
@@ -77,8 +79,10 @@ namespace vloam {
         laserCloudValidNum = 0;
         laserCloudSurroundNum = 0;
 
-        nh->param<int>("skip_frame_number", skip_frame_number, 5);
-        nh->param<int>("map_pub_number", map_pub_number, 20);
+        if (!ros::param::get("skip_frame_number", skip_frame_number))
+            ROS_BREAK();
+        if (!ros::param::get("map_pub_number", map_pub_number))
+            ROS_BREAK();
     }
 
     void LaserMapping::reset() {
