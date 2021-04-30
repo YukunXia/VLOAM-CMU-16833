@@ -41,8 +41,10 @@
 #include <ceres/rotation.h>
 #include <ceres/loss_function.h>
 
+// parameters from launch file
 double rosbag_rate;
-bool visualize_depth, publish_point_cloud, detach_VO_LO;
+bool visualize_depth, publish_point_cloud, detach_VO_LO, save_traj;
+int start_frame, end_frame; // inclusive interval
 
 typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::CameraInfo, sensor_msgs::PointCloud2> MySyncPolicy;
 std::shared_ptr<message_filters::Subscriber<sensor_msgs::Image>> sub_image00_ptr;
@@ -63,8 +65,50 @@ std::shared_ptr<vloam::VloamTF> vloam_tf;
 
 std::string seq, cmd;
 std::ostringstream ss;
+int sys_ret;
 
-void init() {
+// output for evaluation
+std::string VOFileName;
+std::string LOFileName;
+std::string MOFileName;
+FILE *LOFilePtr = NULL;
+FILE *VOFilePtr = NULL;
+FILE *MOFilePtr = NULL;
+
+void init(const vloam_main::vloam_mainGoalConstPtr& goal) {
+    // section 1, initialize file pointers
+    if (save_traj) {
+        ss.clear(); ss.str("");
+        ss << std::setw(4) << std::setfill('0') << goal->seq;
+        seq = std::string(ss.str());
+
+        VOFileName = ros::package::getPath("vloam_main") + "/results/" + goal->date + + "_drive_" + seq;
+        LOFileName = ros::package::getPath("vloam_main") + "/results/" + goal->date + + "_drive_" + seq;
+        MOFileName = ros::package::getPath("vloam_main") + "/results/" + goal->date + + "_drive_" + seq;
+
+        cmd = "mkdir -p " + VOFileName;
+        sys_ret = system(cmd.c_str());
+        cmd = "mkdir -p " + LOFileName;
+        sys_ret = system(cmd.c_str());
+        cmd = "mkdir -p " + MOFileName;
+        sys_ret = system(cmd.c_str());
+
+        VOFileName += "/VO" + std::to_string(detach_VO_LO) + ".txt";
+        LOFileName += "/LO" + std::to_string(detach_VO_LO) + ".txt";
+        MOFileName += "/MO" + std::to_string(detach_VO_LO) + ".txt";
+
+        VOFilePtr = fopen(VOFileName.c_str(), "w");
+        LOFilePtr = fopen(LOFileName.c_str(), "w");
+        MOFilePtr = fopen(MOFileName.c_str(), "w");
+        
+        if (VOFilePtr == NULL or LOFilePtr == NULL or MOFilePtr == NULL) {
+            ROS_INFO("FilePtr == NULL");
+            ROS_BREAK();
+        }
+        ROS_INFO("\n LO file path; %s\n", LOFileName.c_str());
+    }
+
+    // section 2, prepare for a new set of estimation
     count = 0;
 
     vloam_tf = std::make_shared<vloam::VloamTF>();
@@ -103,28 +147,41 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
     
     // Section 4: Solve and Publish VO
     if (count > 0) {
-        VO->solve();
+        VO->solve(); // result is cam0_curr_T_cam0_last, f2f odometry
     }
-    VO->publish();
+    vloam_tf->VO2VeloAndBase(VO->cam0_curr_T_cam0_last); // transform f2f VO to world VO
+    vloam_tf->dynamic_broadcaster.sendTransform(vloam_tf->world_stamped_VOtf_base); // publish for visualization // can be commented out
+    VO->publish(); // publish nav_msgs::odometry 
 
     // Section 5: Solve and Publish LO MO
     LOAM->scanRegistrationIO(point_cloud_pcl);
     LOAM->laserOdometryIO();
     LOAM->laserMappingIO();
 
+    // Section 6, save odoms
+    if (save_traj and count >= start_frame and count <= end_frame) {
+        vloam_tf->VO2Cam0StartFrame(VOFilePtr, count - start_frame);
+        vloam_tf->LO2Cam0StartFrame(LOFilePtr, count - start_frame);
+        vloam_tf->MO2Cam0StartFrame(MOFilePtr, count - start_frame);
+    }
+
     ++count;
-    ROS_INFO("time stamp = %f, %f, %f, count = %d", image_msg->header.stamp.toSec(), camera_info_msg->header.stamp.toSec(), point_cloud_msg->header.stamp.toSec(), count);
 }
 
 void execute(const vloam_main::vloam_mainGoalConstPtr& goal, Server* as) {
     result.loading_finished = false;
 
-    // generate new message filter and tf_buffer
+    // section1, generate new message filter and tf_buffer
     message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(20), *sub_image00_ptr, *sub_camera00_ptr, *sub_velodyne_ptr);
     sync.setInterMessageLowerBound(ros::Duration(0.09));
     sync.registerCallback(boost::bind(&callback, _1, _2, _3));
 
-    init(); // prepare for a new set of estimation
+    // section 2, initialize all pointers
+    init(goal);
+
+    // section 3, play the bag
+    start_frame = goal->start_frame;
+    end_frame = goal->end_frame;
 
     ss.clear(); ss.str("");
     ss << std::setw(4) << std::setfill('0') << goal->seq;
@@ -134,7 +191,15 @@ void execute(const vloam_main::vloam_mainGoalConstPtr& goal, Server* as) {
     // In kitti2bag, kitti_types = ["raw_synced", "odom_color", "odom_gray"]
     // https://github.com/tomas789/kitti2bag/blob/bf0d46c49a77f5d5500621934ccd617d18cf776b/kitti2bag/kitti2bag.py#L264
     ROS_INFO("The command is %s", cmd.c_str());
-    int sys_ret = system(cmd.c_str());
+    sys_ret = system(cmd.c_str());
+
+    // section 4, save files
+    if (save_traj) {
+        fclose(LOFilePtr);
+        fclose(VOFilePtr);
+        fclose(MOFilePtr);
+  	    ROS_INFO("\n LO, VO, MO saved\n\n");
+    }
 
     result.loading_finished = true;
     as->setSucceeded(result);
@@ -148,6 +213,7 @@ int main(int argc, char** argv) {
     nh_private.getParam("rosbag_rate", rosbag_rate);
     nh_private.getParam("visualize_depth", visualize_depth);
     nh_private.getParam("publish_point_cloud", publish_point_cloud);
+    nh_private.getParam("save_traj", save_traj);
 
     ros::NodeHandle nh;
 

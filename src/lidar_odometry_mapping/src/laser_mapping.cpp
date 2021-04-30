@@ -38,7 +38,9 @@
 
 namespace vloam {
 
-    void LaserMapping::init () {
+    void LaserMapping::init (std::shared_ptr<VloamTF>& vloam_tf_) {
+        vloam_tf = vloam_tf_;
+
         if (!ros::param::get("loam_verbose_level", verbose_level))
             ROS_BREAK();
 
@@ -723,6 +725,18 @@ namespace vloam {
             odomAftMapped.pose.pose.position.x = t_w_curr.x();
             odomAftMapped.pose.pose.position.y = t_w_curr.y();
             odomAftMapped.pose.pose.position.z = t_w_curr.z();
+
+            vloam_tf->world_MOT_base_last.setOrigin(tf2::Vector3(
+                t_w_curr.x(),
+                t_w_curr.y(),
+                t_w_curr.z()
+            ));
+            vloam_tf->world_MOT_base_last.setRotation(tf2::Quaternion(
+                q_w_curr.x(),
+                q_w_curr.y(),
+                q_w_curr.z(),
+                q_w_curr.w()
+            ));
         }
         else {
             odomAftMapped.pose.pose.orientation.x = q_w_curr_highfreq.x();
@@ -732,6 +746,18 @@ namespace vloam {
             odomAftMapped.pose.pose.position.x = t_w_curr_highfreq.x();
             odomAftMapped.pose.pose.position.y = t_w_curr_highfreq.y();
             odomAftMapped.pose.pose.position.z = t_w_curr_highfreq.z();
+
+            vloam_tf->world_MOT_base_last.setOrigin(tf2::Vector3(
+                t_w_curr_highfreq.x(),
+                t_w_curr_highfreq.y(),
+                t_w_curr_highfreq.z()
+            ));
+            vloam_tf->world_MOT_base_last.setRotation(tf2::Quaternion(
+                q_w_curr_highfreq.x(),
+                q_w_curr_highfreq.y(),
+                q_w_curr_highfreq.z(),
+                q_w_curr_highfreq.w()
+            ));
         }
         pubOdomAftMapped.publish(odomAftMapped);
 

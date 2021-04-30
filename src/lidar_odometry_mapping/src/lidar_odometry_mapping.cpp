@@ -46,7 +46,7 @@ namespace vloam {
 
         scan_registration.init();
         laser_odometry.init(vloam_tf);
-        laser_mapping.init();
+        laser_mapping.init(vloam_tf);
 
         // subLaserCloud = nh->subscribe<sensor_msgs::PointCloud2>("/velodyne_points", 100, &LidarOdometryMapping::laserCloudHandler, this);
 

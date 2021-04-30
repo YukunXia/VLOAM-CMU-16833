@@ -40,19 +40,19 @@ catkin_package(
 add_library(scan_registration SHARED
   src/scan_registration.cpp
 )
-target_link_libraries(scan_registration ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+target_link_libraries(scan_registration ${catkin_LIBRARIES} ${PCL_LIBRARIES} vloam_tf)
 set_target_properties(scan_registration PROPERTIES PUBLIC_HEADER include/${PROJECT_NAME}/scan_registration.h)
 
 add_library(laser_odometry SHARED
   src/laser_odometry.cpp
 )
-target_link_libraries(laser_odometry ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES})
+target_link_libraries(laser_odometry ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES} vloam_tf)
 set_target_properties(laser_odometry PROPERTIES PUBLIC_HEADER include/${PROJECT_NAME}/laser_odometry.h)
 
 add_library(laser_mapping SHARED
   src/laser_mapping.cpp
 )
-target_link_libraries(laser_mapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES})
+target_link_libraries(laser_mapping ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${CERES_LIBRARIES} vloam_tf)
 set_target_properties(laser_mapping PROPERTIES PUBLIC_HEADER include/${PROJECT_NAME}/laser_mapping.h)
 
 add_library(lidar_odometry_mapping SHARED

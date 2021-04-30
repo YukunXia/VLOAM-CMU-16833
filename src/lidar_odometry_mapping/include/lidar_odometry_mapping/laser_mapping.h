@@ -65,6 +65,8 @@
 #include "lidar_odometry_mapping/common.h"
 #include "lidar_odometry_mapping/tic_toc.h"
 
+#include <vloam_tf/vloam_tf.h>
+
 namespace vloam {
 
     class LaserMapping {
@@ -78,7 +80,7 @@ namespace vloam {
                 nh("laser_mapping_node")
                 {}
 
-            void init ();
+            void init (std::shared_ptr<VloamTF>& vloam_tf_);
 
             void reset();
             void input(
@@ -100,6 +102,8 @@ namespace vloam {
             void pointAssociateTobeMapped(PointType const *const pi, PointType *const po);
 
         private:
+            std::shared_ptr<VloamTF> vloam_tf;
+
             int frameCount = 0;
 
             int laserCloudCenWidth;

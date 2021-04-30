@@ -217,28 +217,28 @@ namespace vloam {
                 ceres::Problem problem(problem_options);
 
                 if (!detach_VO_LO) {
-                    para_q[0] = vloam_tf->velo_last_T_velo_curr.getRotation().x();
-                    para_q[1] = vloam_tf->velo_last_T_velo_curr.getRotation().y();
-                    para_q[2] = vloam_tf->velo_last_T_velo_curr.getRotation().z();
-                    para_q[3] = vloam_tf->velo_last_T_velo_curr.getRotation().w();
+                    para_q[0] = vloam_tf->velo_last_VOT_velo_curr.getRotation().x();
+                    para_q[1] = vloam_tf->velo_last_VOT_velo_curr.getRotation().y();
+                    para_q[2] = vloam_tf->velo_last_VOT_velo_curr.getRotation().z();
+                    para_q[3] = vloam_tf->velo_last_VOT_velo_curr.getRotation().w();
 
-                    para_t[0] = vloam_tf->velo_last_T_velo_curr.getOrigin().x();
-                    para_t[1] = vloam_tf->velo_last_T_velo_curr.getOrigin().y();
-                    para_t[2] = vloam_tf->velo_last_T_velo_curr.getOrigin().z();
+                    para_t[0] = vloam_tf->velo_last_VOT_velo_curr.getOrigin().x();
+                    para_t[1] = vloam_tf->velo_last_VOT_velo_curr.getOrigin().y();
+                    para_t[2] = vloam_tf->velo_last_VOT_velo_curr.getOrigin().z();
 
                     // new (&q_last_curr) Eigen::Map<Eigen::Quaterniond>(para_q);
                     // new (&t_last_curr) Eigen::Map<Eigen::Vector3d>(para_t);
                 }
 
                 if (verbose_level > 1) {
-                    ROS_INFO("\nq_last_curr.x = %f, velo_last_T_velo_curr.q.x = %f", para_q[0], vloam_tf->velo_last_T_velo_curr.getRotation().x());
-                    ROS_INFO("q_last_curr.y = %f, velo_last_T_velo_curr.q.y = %f", para_q[1], vloam_tf->velo_last_T_velo_curr.getRotation().y());
-                    ROS_INFO("q_last_curr.z = %f, velo_last_T_velo_curr.q.z = %f", para_q[2], vloam_tf->velo_last_T_velo_curr.getRotation().z());
-                    ROS_INFO("q_last_curr.w = %f, velo_last_T_velo_curr.q.w = %f", para_q[3], vloam_tf->velo_last_T_velo_curr.getRotation().w());
+                    ROS_INFO("\nq_last_curr.x = %f, velo_last_T_velo_curr.q.x = %f", para_q[0], vloam_tf->velo_last_VOT_velo_curr.getRotation().x());
+                    ROS_INFO("q_last_curr.y = %f, velo_last_T_velo_curr.q.y = %f", para_q[1], vloam_tf->velo_last_VOT_velo_curr.getRotation().y());
+                    ROS_INFO("q_last_curr.z = %f, velo_last_T_velo_curr.q.z = %f", para_q[2], vloam_tf->velo_last_VOT_velo_curr.getRotation().z());
+                    ROS_INFO("q_last_curr.w = %f, velo_last_T_velo_curr.q.w = %f", para_q[3], vloam_tf->velo_last_VOT_velo_curr.getRotation().w());
 
-                    ROS_INFO("t_last_curr.x = %f, velo_last_T_velo_curr.t.x = %f", para_t[0], vloam_tf->velo_last_T_velo_curr.getOrigin().x());
-                    ROS_INFO("t_last_curr.y = %f, velo_last_T_velo_curr.t.y = %f", para_t[1], vloam_tf->velo_last_T_velo_curr.getOrigin().y());
-                    ROS_INFO("t_last_curr.z = %f, velo_last_T_velo_curr.t.z = %f", para_t[2], vloam_tf->velo_last_T_velo_curr.getOrigin().z());
+                    ROS_INFO("t_last_curr.x = %f, velo_last_T_velo_curr.t.x = %f", para_t[0], vloam_tf->velo_last_VOT_velo_curr.getOrigin().x());
+                    ROS_INFO("t_last_curr.y = %f, velo_last_T_velo_curr.t.y = %f", para_t[1], vloam_tf->velo_last_VOT_velo_curr.getOrigin().y());
+                    ROS_INFO("t_last_curr.z = %f, velo_last_T_velo_curr.t.z = %f", para_t[2], vloam_tf->velo_last_VOT_velo_curr.getOrigin().z());
                 }
 
                 problem.AddParameterBlock(para_q, 4, q_parameterization);
@@ -542,6 +542,20 @@ namespace vloam {
         laserOdometry.pose.pose.position.y = t_w_curr.y();
         laserOdometry.pose.pose.position.z = t_w_curr.z();
         pubLaserOdometry.publish(laserOdometry);
+
+        // vloam_tf->cam0_init_eigen_LOT_cam0_last.translation() = t_w_curr;
+        // vloam_tf->cam0_init_eigen_LOT_cam0_last.linear() = q_w_curr.normalized().toRotationMatrix();
+        vloam_tf->world_LOT_base_last.setOrigin(tf2::Vector3(
+            t_w_curr.x(),
+            t_w_curr.y(),
+            t_w_curr.z()
+        ));
+        vloam_tf->world_LOT_base_last.setRotation(tf2::Quaternion(
+            q_w_curr.x(),
+            q_w_curr.y(),
+            q_w_curr.z(),
+            q_w_curr.w()
+        ));
 
         geometry_msgs::PoseStamped laserPose;
         laserPose.header = laserOdometry.header;

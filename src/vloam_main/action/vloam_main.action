@@ -1,6 +1,8 @@
 # Define the goal
 string date
 string seq
+int32 start_frame
+int32 end_frame
 ---
 # Define the result
 bool loading_finished

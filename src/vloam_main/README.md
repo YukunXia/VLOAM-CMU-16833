@@ -7,7 +7,7 @@ PCL 1.2
 
 - Step 1, download bag files under "/bags"
 
-- Step 2, `catkin_make`, and then `roslaunch vloam_main vloam_combine.launch` (Toggle param ```save_traj``` to save odometry path into txt)
+- Step 2, `catkin_make`, and then `roslaunch vloam_main vloam_main.launch` (Toggle param ```save_traj``` to save odometry path into txt)
 
 - Step 3, check the sequence number and date for the bag file, and in another terminal, run
 ```
@@ -24,7 +24,9 @@ goal_id:
   id: ''
 goal:
   date: '2011_09_26'
-  seq: '1'"
+  seq: '1' 
+  start_frame: 10
+  end_frame: 20"
 ```
 
 - Step 4: repeat step 3 with different seq number
@@ -57,6 +59,15 @@ Then, you should see a similar UI like this:
 `frameA_T_frameB` means $T_{frameB}^{frameA}$
 
 Besides, $T = \begin{bmatrix}R & t \\ 0 & 1 \end{bmatrix}$
+
+## Multiple odometry sources
+
+Except from static transformations, VLOAM has three odometry sources: VO, LO, MO. To distinguish them, these sources will also be in the names. Here are some examples:
+
+- `tf2::transform` in VO => VOT
+- `geometry_msgs::transform` in MO => MOtf
+- `geometry_msgs::Stampedtransform` in LO => stamped_LOtf
+- `Eigen::Isometry3f` in VO => eigen_VOT
 
 # `vloam_main.cpp` code explanation
 

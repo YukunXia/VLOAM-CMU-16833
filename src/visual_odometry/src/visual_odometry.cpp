@@ -186,14 +186,12 @@ namespace vloam {
     }
 
     void VisualOdometry::publish () {
-        vloam_tf->VO2BaseVelo(cam0_curr_T_cam0_last);
-        vloam_tf->dynamic_broadcaster.sendTransform(vloam_tf->world_stamped_tf_base);
 
         visualOdometry.header.frame_id = "map";
         visualOdometry.child_frame_id = "visual_odom";
         visualOdometry.header.stamp = ros::Time::now();//image_msg->header.stamp;
-        Eigen::Quaterniond q_wodom_curr(vloam_tf->world_T_base_last.getRotation()); // wodom to cam
-        Eigen::Vector3d t_wodom_curr(vloam_tf->world_T_base_last.getOrigin()); // wodom to cam
+        Eigen::Quaterniond q_wodom_curr(vloam_tf->world_VOT_base_last.getRotation()); // wodom to cam
+        Eigen::Vector3d t_wodom_curr(vloam_tf->world_VOT_base_last.getOrigin()); // wodom to cam
         visualOdometry.pose.pose.orientation.x = q_wodom_curr.x();
         visualOdometry.pose.pose.orientation.y = q_wodom_curr.y();
         visualOdometry.pose.pose.orientation.z = q_wodom_curr.z();
@@ -202,7 +200,20 @@ namespace vloam {
         visualOdometry.pose.pose.position.y = t_wodom_curr.y();
         visualOdometry.pose.pose.position.z = t_wodom_curr.z();
         pubvisualOdometry.publish(visualOdometry);
-        ROS_INFO("publish visualOdometry x = %f and %f", vloam_tf->world_T_base_last.getOrigin().x(), t_wodom_curr.x());
+        // ROS_INFO("publish visualOdometry x = %f and %f", vloam_tf->world_VOT_base_last.getOrigin().x(), t_wodom_curr.x());
+
+        // vloam_tf->world_VOT_base_last.setOrigin(tf2::Vector3(
+        //     t_wodom_curr.x(),
+        //     t_wodom_curr.y(),
+        //     t_wodom_curr.z()
+        // ));
+        // vloam_tf->world_VOT_base_last.setRotation(tf2::Quaternion(
+        //     q_wodom_curr.x(),
+        //     q_wodom_curr.y(),
+        //     q_wodom_curr.z(),
+        //     q_wodom_curr.w()
+        // ));
+
 
         geometry_msgs::PoseStamped visualPose;
         visualPose.header = visualOdometry.header;
