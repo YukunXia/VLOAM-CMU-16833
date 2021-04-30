@@ -17,7 +17,6 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_types.h>
-// #include <nav_msgs/Path.h>
 #include <std_msgs/String.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
@@ -26,9 +25,6 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 
-// #include <visual_odometry/image_util.h>
-// #include <visual_odometry/point_cloud_util.h>
-// #include <visual_odometry/ceres_cost_function.h>
 #include <visual_odometry/visual_odometry.h>
 #include <lidar_odometry_mapping/lidar_odometry_mapping.h>
 #include <lidar_odometry_mapping/tic_toc.h>
@@ -44,8 +40,6 @@
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
 #include <ceres/loss_function.h>
-
-ros::NodeHandle* nh_ptr;
 
 double rosbag_rate;
 bool visualize_depth, publish_point_cloud, detach_VO_LO;
@@ -107,24 +101,27 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
     // ROS_INFO("point cloud width=%d, height=%d", point_cloud_pcl.width, point_cloud_pcl.height); // typical output "point cloud width=122270, height=1053676" // TODO: check why height is so large
     VO->processPointCloud(point_cloud_msg, point_cloud_pcl, visualize_depth, publish_point_cloud);
     
+    // Section 4: Solve and Publish VO
     if (count > 0) {
-        // Section 5: Solve and Publish VO
         VO->solve();
-        VO->publish();
     }
+    VO->publish();
 
+    // Section 5: Solve and Publish LO MO
     LOAM->scanRegistrationIO(point_cloud_pcl);
     LOAM->laserOdometryIO();
     LOAM->laserMappingIO();
 
     ++count;
+    ROS_INFO("time stamp = %f, %f, %f, count = %d", image_msg->header.stamp.toSec(), camera_info_msg->header.stamp.toSec(), point_cloud_msg->header.stamp.toSec(), count);
 }
 
 void execute(const vloam_main::vloam_mainGoalConstPtr& goal, Server* as) {
     result.loading_finished = false;
 
     // generate new message filter and tf_buffer
-    message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), *sub_image00_ptr, *sub_camera00_ptr, *sub_velodyne_ptr);
+    message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(20), *sub_image00_ptr, *sub_camera00_ptr, *sub_velodyne_ptr);
+    sync.setInterMessageLowerBound(ros::Duration(0.09));
     sync.registerCallback(boost::bind(&callback, _1, _2, _3));
 
     init(); // prepare for a new set of estimation
@@ -132,7 +129,7 @@ void execute(const vloam_main::vloam_mainGoalConstPtr& goal, Server* as) {
     ss.clear(); ss.str("");
     ss << std::setw(4) << std::setfill('0') << goal->seq;
     seq = std::string(ss.str());
-    cmd = "rosbag play " + ros::package::getPath("vloam_main") + "/bags/kitti_" + goal->date + "_drive_" + seq + "_synced.bag -r " + std::to_string(rosbag_rate); 
+    cmd = "rosbag play " + ros::package::getPath("vloam_main") + "/bags/kitti_" + goal->date + "_drive_" + seq + "_synced.bag -d 2 -r " + std::to_string(rosbag_rate); 
     // TODO: add one more entry of goal for different dataset type: 
     // In kitti2bag, kitti_types = ["raw_synced", "odom_color", "odom_gray"]
     // https://github.com/tomas789/kitti2bag/blob/bf0d46c49a77f5d5500621934ccd617d18cf776b/kitti2bag/kitti2bag.py#L264
@@ -153,11 +150,10 @@ int main(int argc, char** argv) {
     nh_private.getParam("publish_point_cloud", publish_point_cloud);
 
     ros::NodeHandle nh;
-    nh_ptr = &nh;
 
-    sub_image00_ptr = std::make_shared<message_filters::Subscriber<sensor_msgs::Image>>(nh, "/kitti/camera_gray_left/image_raw", 5);
-    sub_camera00_ptr = std::make_shared<message_filters::Subscriber<sensor_msgs::CameraInfo>>(nh, "/kitti/camera_gray_left/camera_info", 5);
-    sub_velodyne_ptr = std::make_shared<message_filters::Subscriber<sensor_msgs::PointCloud2>>(nh, "/kitti/velo/pointcloud", 5); // TODO: change the buffer size to potentially reduce the data lost
+    sub_image00_ptr = std::make_shared<message_filters::Subscriber<sensor_msgs::Image>>(nh, "/kitti/camera_gray_left/image_raw", 10);
+    sub_camera00_ptr = std::make_shared<message_filters::Subscriber<sensor_msgs::CameraInfo>>(nh, "/kitti/camera_gray_left/camera_info", 10);
+    sub_velodyne_ptr = std::make_shared<message_filters::Subscriber<sensor_msgs::PointCloud2>>(nh, "/kitti/velo/pointcloud", 10); // TODO: change the buffer size to potentially reduce the data lost
 
     Server server(nh, "load_small_dataset_action_server", boost::bind(&execute, _1, &server), false);
     server.start();

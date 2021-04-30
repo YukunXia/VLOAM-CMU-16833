@@ -34,6 +34,9 @@ namespace vloam {
         // In our case, residual num is 1000~2000, but num of param is only 6
         // options.minimizer_progress_to_stdout = true;
 
+        cam0_curr_T_cam0_last.setOrigin(tf2::Vector3(0.0, 0.0, 0.0));
+        cam0_curr_T_cam0_last.setRotation(tf2::Quaternion(0.0, 0.0, 0.0, 1.0));
+
         pubvisualOdometry = nh.advertise<nav_msgs::Odometry>("/visual_odom_to_init", 100);
         pubvisualPath = nh.advertise<nav_msgs::Path>("/visual_odom_path", 100);
         visualPath.poses.clear();
@@ -199,6 +202,7 @@ namespace vloam {
         visualOdometry.pose.pose.position.y = t_wodom_curr.y();
         visualOdometry.pose.pose.position.z = t_wodom_curr.z();
         pubvisualOdometry.publish(visualOdometry);
+        ROS_INFO("publish visualOdometry x = %f and %f", vloam_tf->world_T_base_last.getOrigin().x(), t_wodom_curr.x());
 
         geometry_msgs::PoseStamped visualPose;
         visualPose.header = visualOdometry.header;

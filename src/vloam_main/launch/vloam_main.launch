@@ -1,6 +1,18 @@
 <launch>
     <include file="$(find lidar_odometry_mapping)/launch/loam_velodyne_HDL_64_kitti.launch" />
-    <param name="detach_VO_LO" type="bool" value="false" />
+
+    <param name="detach_VO_LO" type="bool" value="true" />
+
+    <arg name="save_traj" default="1" />
+    <arg name="seq_num" value="1" />
+
+    <group if="$(eval arg('save_traj') ==1)">
+        <node pkg="vloam_main" type="odometryEvaluate" name="odometryEvaluate" output="screen">
+            <param name="lidar_odom_filename" type="string" value="$(find vloam_main)/results/seq$(arg seq_num)/lo" />
+            <param name="visual_odom_filename" type="string" value="$(find vloam_main)/results/seq$(arg seq_num)/vo" />
+            <param name="map_odom_filename" type="string" value="$(find vloam_main)/results/seq$(arg seq_num)/mo" />
+        </node>
+    </group>
 
     <node pkg="vloam_main" type="vloam_main_node" name="vloam_main_node" output="screen">
         <param name="rosbag_rate" type="double" value="0.5" />
@@ -9,12 +21,5 @@
     </node>
 
     <node type="rviz" name="rviz" pkg="rviz" args="-d $(find vloam_main)/rviz/vloam.rviz" />
-
-    <!-- <node pkg="hector_trajectory_server" type="hector_trajectory_server" name="hector_trajectory_server" output="screen" >
-        <param name="target_frame_name" type="string" value="map" />
-        <param name="source_frame_name" type="string" value="base" />
-        <param name="trajectory_update_rate" type="double" value="10" />
-        <param name="trajectory_publish_rate" type="double" value="10" />
-    </node> -->
 
 </launch>
