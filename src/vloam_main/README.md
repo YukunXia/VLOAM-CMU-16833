@@ -10,38 +10,63 @@ PCL 1.2
 - Step 2, `catkin_make`, and then `roslaunch vloam_main vloam_main.launch` (Toggle param ```save_traj``` to save odometry path into txt)
 
 - Step 3, check the sequence number and date for the bag file, and in another terminal, run
-```
-rostopic pub /load_small_dataset_action_server/goal vloam_main/vloam_mainActionGoal "header:
-  seq: 0
-  stamp:
-    secs: 0
-    nsecs: 0
-  frame_id: ''
-goal_id:
-  stamp:
-    secs: 0
-    nsecs: 0
-  id: ''
-goal:
-  date: '2011_09_26'
-  seq: '1' 
-  start_frame: 10
-  end_frame: 20"
-```
+
+ - Test seq 04
+
+    ```
+    rostopic pub /load_small_dataset_action_server/goal vloam_main/vloam_mainActionGoal "header:
+      seq: 0
+      stamp:
+        secs: 0
+        nsecs: 0
+      frame_id: ''
+    goal_id:
+      stamp:
+        secs: 0
+        nsecs: 0
+      id: ''
+    goal:
+      date: '2011_09_30'
+      seq: '16' 
+      start_frame: 0
+      end_frame: 270"
+    ```
+
+ - Test seq 06
+
+    ```
+    rostopic pub /load_small_dataset_action_server/goal vloam_main/vloam_mainActionGoal "header:
+      seq: 0
+      stamp:
+        secs: 0
+        nsecs: 0
+      frame_id: ''
+    goal_id:
+      stamp:
+        secs: 0
+        nsecs: 0
+      id: ''
+    goal:
+      date: '2011_09_30'
+      seq: '20' 
+      start_frame: 0
+      end_frame: 1100"
+    ```
+
+  - After a bag is finished, the predicted poses will be autonmatically stored into VOx.txt, LOx.txt and MOx.txt, and vloam_main will be ready to take in another goal. Just remember to back up the results before sending another goal msg, because by default, "save_traj" is true in vloam_main.launch.
+
+  (Note: changing the detach_VO_LO needs modification and relaunching of vloam_main.launch)
 
 - Step 4: repeat step 3 with different seq number
 
 Then, you should see a similar UI like this:
 
 ![demo](figures/combine_pose.png)
-# TODO
-- ~Finish VO implementation~
-- ~Finish LO implementation~
-- ~Combine LO & VO implementation & fix Rviz~
-- ~Transform LO & VO to velodyne center & save trajectory to txt~
-- Fuse VO offline and feed to LO init
-- Evaluate odometry 
-- Fix tf tree(minor)
+
+- Step 5: Move VOx.txt, LOx.txt and MOx.txt from `vloam_main/results/${date}_drive_${raw data seq number}` to evaluation_tool/data/xOx.txt, and rename them to be ${test seq number}_pred.txt
+
+    (Note: VO0 is equal to VO1, so only VO0 folder exists uder evaluation_tool/data)
+
 
 # Naming convention for transformations
 

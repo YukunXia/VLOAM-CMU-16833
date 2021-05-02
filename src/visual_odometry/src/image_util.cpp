@@ -40,8 +40,8 @@ namespace vloam {
                 detector = cv::ORB::create();
             else if (detector_type == DetectorType::AKAZE)
                 detector = cv::AKAZE::create();
-            else if (detector_type == DetectorType::SIFT)
-                detector = cv::SIFT::create();
+            // else if (detector_type == DetectorType::SIFT)
+            //     detector = cv::SIFT::create();
             else {
                 std::cerr << "Detector is not implemented" << std::endl;
                 exit(EXIT_FAILURE);
@@ -105,9 +105,9 @@ namespace vloam {
         else if (descriptor_type == DescriptorType::AKAZE) {
             extractor = cv::AKAZE::create();
         }    
-        else if (descriptor_type == DescriptorType::SIFT) {
-            extractor = cv::SIFT::create();
-        }
+        // else if (descriptor_type == DescriptorType::SIFT) {
+        //     extractor = cv::SIFT::create();
+        // }
         else {
             std::cerr << "Decscriptor is not implemented" << std::endl;
             exit(EXIT_FAILURE);
@@ -138,9 +138,9 @@ namespace vloam {
             if (descriptor_type == DescriptorType::AKAZE or descriptor_type == DescriptorType::BRISK or descriptor_type == DescriptorType::ORB) {
                 normType = cv::NORM_HAMMING;
             }
-            else if (descriptor_type == DescriptorType::SIFT) {
-                normType = cv::NORM_L2;
-            }
+            // else if (descriptor_type == DescriptorType::SIFT) {
+            //     normType = cv::NORM_L2;
+            // }
             else {
                 std::cerr << "Decscriptor is not implemented" << std::endl;
             }
@@ -203,7 +203,7 @@ namespace vloam {
             iu->visualizeMatchesCallBack(ev, x, y);
     }
 
-    void ImageUtil::visualizeMatches(const cv::Mat &image0, const cv::Mat &image1, const std::vector<cv::KeyPoint> &keypoints0, const std::vector<cv::KeyPoint> &keypoints1, const std::vector<cv::DMatch>& matches, const int stride) {
+    cv::Mat ImageUtil::visualizeMatches(const cv::Mat &image0, const cv::Mat &image1, const std::vector<cv::KeyPoint> &keypoints0, const std::vector<cv::KeyPoint> &keypoints1, const std::vector<cv::DMatch>& matches, const int stride) {
         std::vector<cv::DMatch> matches_dnsp;
 
         for (int i=0; i<matches.size(); i+=stride) {
@@ -217,11 +217,14 @@ namespace vloam {
                         cv::Scalar::all(-1), cv::Scalar::all(-1),
                         std::vector<char>(), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
 
-        std::string windowName = "Matching keypoints between two camera images";
-        cv::namedWindow(windowName, 7);
-        cv::setMouseCallback(windowName, visualizeMatchesOnMouse, this);
-        cv::imshow(windowName, matchImg);
-        std::cout << "Press key to continue to next image" << std::endl;
-        cv::waitKey(0); // wait for key to be pressed
+        // std::string windowName = "Matching keypoints between two camera images";
+        // cv::namedWindow(windowName, 7);
+        // cv::setMouseCallback(windowName, visualizeMatchesOnMouse, this);
+        // cv::imshow(windowName, matchImg);
+        // std::cout << "Press key to continue to next image" << std::endl;
+        // cv::waitKey(0); // wait for key to be pressed
+        // ROS_INFO("image showed");
+
+        return matchImg;
     }
 }

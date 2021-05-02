@@ -8,10 +8,17 @@ namespace vloam {
     void VisualOdometry::init(std::shared_ptr<VloamTF>& vloam_tf_) {
         vloam_tf = vloam_tf_;
 
+        if (!ros::param::get("loam_verbose_level", verbose_level))
+            ROS_BREAK();
+
         count = 0;
 
         image_util.print_result = false;
         image_util.visualize_result = false;
+        image_util.detector_type = DetectorType::ShiTomasi;
+        image_util.descriptor_type = DescriptorType::ORB;
+        image_util.matcher_type = MatcherType::BF;
+        image_util.selector_type = SelectType::KNN;
 
         images.clear();
         images.resize(2);
@@ -28,6 +35,11 @@ namespace vloam {
         point_cloud_utils[1].print_result = false;
         point_cloud_utils[1].downsample_grid_size = 5;
 
+        for (j=0; j<3; ++j) {
+            angles_0to1[j] = 0.0;
+            t_0to1[j] = 0.0;
+        }
+
         options.max_num_iterations = 100;
         options.linear_solver_type = ceres::DENSE_QR; // TODO: check the best solver
         // Reference: http://ceres-solver.org/nnls_solving.html#linearsolver. For small problems (a couple of hundred parameters and a few thousand residuals) with relatively dense Jacobians, DENSE_QR is the method of choice
@@ -40,6 +52,10 @@ namespace vloam {
         pubvisualOdometry = nh.advertise<nav_msgs::Odometry>("/visual_odom_to_init", 100);
         pubvisualPath = nh.advertise<nav_msgs::Path>("/visual_odom_path", 100);
         visualPath.poses.clear();
+
+        image_transport::ImageTransport it(nh);
+        pub_matches_viz = it.advertise("/visual_odometry/matches_visualization", 10);
+        pub_depth_viz = it.advertise("/visual_odometry/depth_visualization", 10);
     }
 
     void VisualOdometry::reset() {
@@ -96,12 +112,14 @@ namespace vloam {
     }
 
     void VisualOdometry::solve() {
+        ceres::LossFunction *loss_function = new ceres::HuberLoss(0.1);
         ceres::Problem problem;   
 
-        for (j=0; j<3; ++j) {
-            angles_0to1[j] = 0.0;
-            t_0to1[j] = 0.0;
-        }
+        // for (j=0; j<3; ++j) {
+        //     angles_0to1[j] = 0.0;
+        //     t_0to1[j] = 0.0;
+        // }
+        
         // int counter33 = 0, counter32 = 0, counter23 = 0, counter22 = 0;
         for (const auto& match:matches) { // ~ n=1400 matches
             depth0 = point_cloud_utils[1-i].queryDepth(keypoints[1-i][match.queryIdx].pt.x, keypoints[1-i][match.queryIdx].pt.y);
@@ -124,7 +142,7 @@ namespace vloam {
                         static_cast<double>(point_3d_rect0_1(1)), 
                         static_cast<double>(point_3d_rect0_1(2))
                 );
-                problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(0.5), angles_0to1, t_0to1);
+                problem.AddResidualBlock(cost_function, loss_function, angles_0to1, t_0to1);
                 // ++counter33;
             }
             else if (depth0 > 0 and depth1 <= 0) {
@@ -140,7 +158,7 @@ namespace vloam {
                         static_cast<double>(keypoints[i][match.trainIdx].pt.x * 2.0) / static_cast<double>(point_cloud_utils[i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
                         static_cast<double>(keypoints[i][match.trainIdx].pt.y * 2.0) / static_cast<double>(point_cloud_utils[i].IMG_HEIGHT)
                 );
-                problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(0.5), angles_0to1, t_0to1);
+                problem.AddResidualBlock(cost_function, loss_function, angles_0to1, t_0to1);
                 // ++counter32;
             }
             else if (depth0 <= 0 and depth1 > 0) {
@@ -156,7 +174,7 @@ namespace vloam {
                         static_cast<double>(point_3d_rect0_1(1)), 
                         static_cast<double>(point_3d_rect0_1(2))
                 );
-                problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(0.5), angles_0to1, t_0to1);
+                problem.AddResidualBlock(cost_function, loss_function, angles_0to1, t_0to1);
                 // ++counter23;
             }
             else {
@@ -166,7 +184,7 @@ namespace vloam {
                         static_cast<double>(keypoints[i][match.trainIdx].pt.x * 2.0) / static_cast<double>(point_cloud_utils[i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
                         static_cast<double>(keypoints[i][match.trainIdx].pt.y * 2.0) / static_cast<double>(point_cloud_utils[i].IMG_HEIGHT)
                 );
-                problem.AddResidualBlock(cost_function, new ceres::CauchyLoss(0.5), angles_0to1, t_0to1);
+                problem.AddResidualBlock(cost_function, loss_function, angles_0to1, t_0to1);
                 // ++counter22;
             }
         }
@@ -222,6 +240,22 @@ namespace vloam {
         visualPath.header.frame_id = "map";
         visualPath.poses.push_back(visualPose);
         pubvisualPath.publish(visualPath);
+
+        if (verbose_level > 0 and count > 1) {
+            std_msgs::Header header;
+            header.stamp = ros::Time::now();
+            cv::Mat match_image = image_util.visualizeMatches(images[1-i], images[i], keypoints[1-i], keypoints[i], matches);
+            matches_viz_cvbridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::RGB8, match_image);
+            pub_matches_viz.publish(matches_viz_cvbridge.toImageMsg());
+        }
+
+        if (verbose_level > 0 and count > 0) {
+            std_msgs::Header header;
+            header.stamp = ros::Time::now();
+            cv::Mat depth_image = point_cloud_utils[i].visualizeDepth(images[i]);
+            depth_viz_cvbridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::RGB8, depth_image);
+            pub_depth_viz.publish(depth_viz_cvbridge.toImageMsg());
+        }
     }
 
 }

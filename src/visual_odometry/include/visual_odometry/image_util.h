@@ -4,19 +4,20 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/features2d.hpp>
 
-#include "ros/package.h"
+#include <ros/ros.h>
+#include <ros/package.h>
 
 #ifndef IMAGE_UTIL_H
 #define IMAGE_UTIL_H
 
 namespace vloam {
-    enum class DetectorType {ShiTomasi, BRISK, FAST, ORB, AKAZE, SIFT};
+    enum class DetectorType {ShiTomasi, BRISK, FAST, ORB, AKAZE};
     static const std::string DetectorType_str[] = {
-        "ShiTomasi", "BRISK", "FAST", "ORB", "AKAZE", "SIFT"
+        "ShiTomasi", "BRISK", "FAST", "ORB", "AKAZE"
     };
-    enum class DescriptorType {BRISK, ORB, BRIEF, AKAZE, FREAK, SIFT};
+    enum class DescriptorType {BRISK, ORB, BRIEF, AKAZE, FREAK};
     static const std::string DescriptorType_str[] = {
-        "BRISK", "ORB", "BRIEF", "AKAZE", "FREAK", "SIFT"
+        "BRISK", "ORB", "BRIEF", "AKAZE", "FREAK"
     };
     enum class MatcherType {BF, FLANN};
     enum class SelectType {NN, KNN};
@@ -37,7 +38,7 @@ namespace vloam {
             cv::Mat descKeypoints(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img);
             std::vector<cv::DMatch> matchDescriptors(cv::Mat &desc_source, cv::Mat &desc_ref);
             void visualizeMatchesCallBack(int event, int x, int y);
-            void visualizeMatches(const cv::Mat &image0, const cv::Mat &image1, const std::vector<cv::KeyPoint> &keypoints0, const std::vector<cv::KeyPoint> &keypoints1, const std::vector<cv::DMatch>& matches, const int stride = 10);
+            cv::Mat visualizeMatches(const cv::Mat &image0, const cv::Mat &image1, const std::vector<cv::KeyPoint> &keypoints0, const std::vector<cv::KeyPoint> &keypoints1, const std::vector<cv::DMatch>& matches, const int stride = 10);
 
             // std::string path_prefix;
             bool print_result;

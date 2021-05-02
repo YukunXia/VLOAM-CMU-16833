@@ -14,6 +14,8 @@
 #include <nav_msgs/Path.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <image_transport/image_transport.h>
+#include <cv_bridge/cv_bridge.h>
 
 #include <opencv2/opencv.hpp>
 #include <eigen3/Eigen/Dense>
@@ -77,6 +79,7 @@ namespace vloam {
             Eigen::Vector3f point_3d_rect0_1;
             ros::Publisher pub_point_cloud;
 
+            // ceres::LossFunction *loss_function = new ceres::CauchyLoss(0.5);
             ceres::Solver::Options options;    
             ceres::Solver::Summary summary;
 
@@ -87,10 +90,16 @@ namespace vloam {
         private:
             ros::NodeHandle nh;
 
+            int verbose_level;
+
             nav_msgs::Odometry visualOdometry;
             ros::Publisher pubvisualOdometry;
             nav_msgs::Path visualPath;
             ros::Publisher pubvisualPath;
+            image_transport::Publisher pub_matches_viz;
+            cv_bridge::CvImage matches_viz_cvbridge;
+            image_transport::Publisher pub_depth_viz;
+            cv_bridge::CvImage depth_viz_cvbridge;
     };
 }
 

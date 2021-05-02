@@ -18,7 +18,7 @@ namespace vloam {
         world_stamped_VOtf_base.header.stamp = ros::Time::now();
         dynamic_broadcaster.sendTransform(world_stamped_VOtf_base);
 
-        imu_stamped_tf_velo = tf_buffer_ptr->lookupTransform("imu_link", "velo_link", ros::Time::now(), ros::Duration(0.1));
+        imu_stamped_tf_velo = tf_buffer_ptr->lookupTransform("imu_link", "velo_link", ros::Time(0), ros::Duration(3.0));
         // NOTE: lookupTransform() will actually block until the transform between the two turtles becomes available (this will usually take a few milliseconds)
         tf2::fromMsg(imu_stamped_tf_velo.transform, imu_T_velo); // TODO: later use, if not, remove
         imu_eigen_T_velo = tf2::transformToEigen(imu_stamped_tf_velo).cast<float>(); // for point cloud util internal use
@@ -27,12 +27,12 @@ namespace vloam {
         imu_stamped_tf_velo.child_frame_id = "velo";
         static_broadcaster.sendTransform(imu_stamped_tf_velo);
 
-        map_stamped_tf_velo_origin = tf_buffer_ptr->lookupTransform("base_link", "velo_link", ros::Time::now(), ros::Duration(0.1));
+        map_stamped_tf_velo_origin = tf_buffer_ptr->lookupTransform("base_link", "velo_link", ros::Time(0), ros::Duration(3.0));
         map_stamped_tf_velo_origin.header.frame_id = "map";
         map_stamped_tf_velo_origin.child_frame_id = "velo_origin";
         static_broadcaster.sendTransform(map_stamped_tf_velo_origin);
 
-        imu_stamped_tf_cam0 = tf_buffer_ptr->lookupTransform("imu_link", "camera_gray_left", ros::Time::now(), ros::Duration(0.1));
+        imu_stamped_tf_cam0 = tf_buffer_ptr->lookupTransform("imu_link", "camera_gray_left", ros::Time(0), ros::Duration(3.0));
         tf2::fromMsg(imu_stamped_tf_cam0.transform, imu_T_cam0); // TODO: later use, if not, remove
         imu_eigen_T_cam0 = tf2::transformToEigen(imu_stamped_tf_cam0).cast<float>(); // for point cloud util internal use
 
@@ -40,7 +40,7 @@ namespace vloam {
         imu_stamped_tf_cam0.child_frame_id = "cam0";
         static_broadcaster.sendTransform(imu_stamped_tf_cam0);
 
-        base_stamped_tf_imu = tf_buffer_ptr->lookupTransform("base_link", "imu_link", ros::Time::now(), ros::Duration(0.1));
+        base_stamped_tf_imu = tf_buffer_ptr->lookupTransform("base_link", "imu_link", ros::Time(0), ros::Duration(3.0));
         tf2::fromMsg(base_stamped_tf_imu.transform, base_T_imu); // TODO: later use, if not, remove
 
         base_stamped_tf_imu.header.frame_id = "base";

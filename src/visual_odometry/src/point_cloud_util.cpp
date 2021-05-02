@@ -412,7 +412,7 @@ namespace vloam {
         cv::waitKey(0); // wait for key to be pressed
     }
 
-    void PointCloudUtil::visualizeDepth(cv::Mat gray_image) {
+    cv::Mat PointCloudUtil::visualizeDepth(cv::Mat gray_image) {
         image_with_depth = gray_image.clone();
         cv::cvtColor(image_with_depth, image_with_depth, cv::COLOR_GRAY2BGR);
         int x, y;
@@ -446,8 +446,10 @@ namespace vloam {
             }
         }
 
-        cv::namedWindow("Display Kitti Sample Image With Depth Estimation", cv::WINDOW_AUTOSIZE);
-        cv::imshow("Display Kitti Sample Image With Depth Estimation", image_with_depth);
-        cv::waitKey(1); // wait for 1ms
+        // cv::namedWindow("Display Kitti Sample Image With Depth Estimation", cv::WINDOW_AUTOSIZE);
+        // cv::imshow("Display Kitti Sample Image With Depth Estimation", image_with_depth);
+        // cv::waitKey(1); // wait for 1ms
+
+        return image_with_depth;
     }
 }
