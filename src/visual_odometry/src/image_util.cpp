@@ -206,7 +206,16 @@ namespace vloam {
     cv::Mat ImageUtil::visualizeMatches(const cv::Mat &image0, const cv::Mat &image1, const std::vector<cv::KeyPoint> &keypoints0, const std::vector<cv::KeyPoint> &keypoints1, const std::vector<cv::DMatch>& matches, const int stride) {
         std::vector<cv::DMatch> matches_dnsp;
 
+        int query_pt_x, query_pt_y, train_pt_x, train_pt_y;
         for (int i=0; i<matches.size(); i+=stride) {
+            query_pt_x = keypoints0[matches[i].queryIdx].pt.x;
+            query_pt_y = keypoints0[matches[i].queryIdx].pt.y;
+            train_pt_x = keypoints1[matches[i].trainIdx].pt.x;
+            train_pt_y = keypoints1[matches[i].trainIdx].pt.y;
+            if (remove_VO_outlier > 0) {
+                if (std::pow(query_pt_x - train_pt_x, 2) + std::pow(query_pt_y - train_pt_y, 2) > remove_VO_outlier*remove_VO_outlier)
+                    continue;
+            }
             matches_dnsp.push_back(matches[i]);
         }
 

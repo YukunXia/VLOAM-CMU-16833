@@ -91,6 +91,8 @@ namespace vloam {
             ros::NodeHandle nh;
 
             int verbose_level;
+            bool reset_VO;
+            int remove_VO_outlier;
 
             nav_msgs::Odometry visualOdometry;
             ros::Publisher pubvisualOdometry;

@@ -4,7 +4,8 @@
 #include <fstream>
 #include <boost/lexical_cast.hpp>
 
-#include "ros/package.h"
+#include <ros/ros.h>
+#include <ros/package.h>
 
 #include <eigen3/Eigen/Dense>
 #include <opencv2/opencv.hpp>

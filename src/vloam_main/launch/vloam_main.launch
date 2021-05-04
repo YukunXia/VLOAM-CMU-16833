@@ -2,6 +2,8 @@
     <include file="$(find lidar_odometry_mapping)/launch/loam_velodyne_HDL_64_kitti.launch" />
 
     <param name="detach_VO_LO" type="bool" value="false" />
+    <param name="reset_VO" type="bool" value="true" />
+    <param name="remove_VO_outlier" type="int" value="0" />
 
     <node pkg="vloam_main" type="vloam_main_node" name="vloam_main_node" output="screen">
         <param name="rosbag_rate" type="double" value="0.33" />

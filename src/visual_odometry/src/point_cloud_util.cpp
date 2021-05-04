@@ -325,6 +325,19 @@ namespace vloam {
         // std::cout << neighbors[1].head(3).transpose() << std::endl;
         // std::cout << neighbors[2].head(3).transpose() << "\n" << std::endl;
 
+        // float depth_max = std::max({
+        //     neighbors[0](2),
+        //     neighbors[1](2),
+        //     neighbors[2](2)
+        // });
+        // float depth_min = std::min({
+        //     neighbors[0](2),
+        //     neighbors[1](2),
+        //     neighbors[2](2)
+        // });
+        // if (depth_max - depth_min > 1.0)
+        //     return -2.0f;
+
         float z = (neighbors[0](2)*neighbors[1](3)*neighbors[2](3) + neighbors[1](2)*neighbors[0](3)*neighbors[2](3) + neighbors[2](2)*neighbors[0](3)*neighbors[1](3))/(0.0001f + neighbors[1](3)*neighbors[2](3) + neighbors[0](3)*neighbors[2](3) + neighbors[0](3)*neighbors[1](3));  // TODO: weighted distance -> Done? need to test
         assert(z > 0);
         return z;

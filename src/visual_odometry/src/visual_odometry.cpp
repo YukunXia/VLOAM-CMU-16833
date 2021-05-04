@@ -10,6 +10,10 @@ namespace vloam {
 
         if (!ros::param::get("loam_verbose_level", verbose_level))
             ROS_BREAK();
+        if (!ros::param::get("reset_VO", reset_VO))
+            ROS_BREAK();
+        if (!ros::param::get("remove_VO_outlier", remove_VO_outlier))
+            ROS_BREAK();
 
         count = 0;
 
@@ -19,6 +23,7 @@ namespace vloam {
         image_util.descriptor_type = DescriptorType::ORB;
         image_util.matcher_type = MatcherType::BF;
         image_util.selector_type = SelectType::KNN;
+        image_util.remove_VO_outlier = remove_VO_outlier;
 
         images.clear();
         images.resize(2);
@@ -115,18 +120,35 @@ namespace vloam {
         ceres::LossFunction *loss_function = new ceres::HuberLoss(0.1);
         ceres::Problem problem;   
 
-        // for (j=0; j<3; ++j) {
-        //     angles_0to1[j] = 0.0;
-        //     t_0to1[j] = 0.0;
-        // }
+        if (reset_VO) {
+            for (j=0; j<3; ++j) {
+                angles_0to1[j] = 0.0;
+                t_0to1[j] = 0.0;
+            }
+        }
         
+        int query_pt_x, query_pt_y, train_pt_x, train_pt_y;
         // int counter33 = 0, counter32 = 0, counter23 = 0, counter22 = 0;
         for (const auto& match:matches) { // ~ n=1400 matches
-            depth0 = point_cloud_utils[1-i].queryDepth(keypoints[1-i][match.queryIdx].pt.x, keypoints[1-i][match.queryIdx].pt.y);
-            depth1 = point_cloud_utils[i].queryDepth(keypoints[i][match.trainIdx].pt.x, keypoints[i][match.trainIdx].pt.y);
+            query_pt_x = keypoints[1-i][match.queryIdx].pt.x;
+            query_pt_y = keypoints[1-i][match.queryIdx].pt.y;
+            train_pt_x = keypoints[i][match.trainIdx].pt.x;
+            train_pt_y = keypoints[i][match.trainIdx].pt.y;
+
+            if (remove_VO_outlier > 0) {
+                if (std::pow(query_pt_x - train_pt_x, 2) + std::pow(query_pt_y - train_pt_y, 2) > remove_VO_outlier*remove_VO_outlier)
+                    continue;
+            }
+
+            depth0 = point_cloud_utils[1-i].queryDepth(query_pt_x, query_pt_y);
+            depth1 = point_cloud_utils[i].queryDepth(train_pt_x, train_pt_y);
+
+            // if (std::abs(depth0 - depth1) > 3.0)
+            //     continue;
+
             if (depth0 > 0 and depth1 > 0) {
-                point_3d_image0_0 << keypoints[1-i][match.queryIdx].pt.x*depth0, keypoints[1-i][match.queryIdx].pt.y*depth0, depth0;
-                point_3d_image0_1 << keypoints[i][match.trainIdx].pt.x*depth1, keypoints[i][match.trainIdx].pt.y*depth1, depth1;
+                point_3d_image0_0 << query_pt_x*depth0, query_pt_y*depth0, depth0;
+                point_3d_image0_1 << train_pt_x*depth1, train_pt_y*depth1, depth1;
 
                 point_3d_rect0_0 = (point_cloud_utils[1-i].P_rect0.leftCols(3)).colPivHouseholderQr().solve(point_3d_image0_0 - point_cloud_utils[1-i].P_rect0.col(3));
                 point_3d_rect0_1 = (point_cloud_utils[i].P_rect0.leftCols(3)).colPivHouseholderQr().solve(point_3d_image0_1 - point_cloud_utils[i].P_rect0.col(3));
@@ -165,7 +187,7 @@ namespace vloam {
                 point_3d_image0_1 << keypoints[i][match.trainIdx].pt.x*depth1, keypoints[i][match.trainIdx].pt.y*depth1, depth1;
                 point_3d_rect0_1 = (point_cloud_utils[i].P_rect0.leftCols(3)).colPivHouseholderQr().solve(point_3d_image0_1 - point_cloud_utils[i].P_rect0.col(3));
 
-                // assert(std::abs(point_3d_rect0_1(2) - depth1) < 0.0001);
+            //     // assert(std::abs(point_3d_rect0_1(2) - depth1) < 0.0001);
 
                 ceres::CostFunction* cost_function = vloam::CostFunctor23::Create(
                         static_cast<double>(keypoints[1-i][match.queryIdx].pt.x * 2.0) / static_cast<double>(point_cloud_utils[1-i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
@@ -249,13 +271,13 @@ namespace vloam {
             pub_matches_viz.publish(matches_viz_cvbridge.toImageMsg());
         }
 
-        if (verbose_level > 0 and count > 0) {
-            std_msgs::Header header;
-            header.stamp = ros::Time::now();
-            cv::Mat depth_image = point_cloud_utils[i].visualizeDepth(images[i]);
-            depth_viz_cvbridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::RGB8, depth_image);
-            pub_depth_viz.publish(depth_viz_cvbridge.toImageMsg());
-        }
+        // if (verbose_level > 0 and count > 0) {
+        //     std_msgs::Header header;
+        //     header.stamp = ros::Time::now();
+        //     cv::Mat depth_image = point_cloud_utils[i].visualizeDepth(images[i]);
+        //     depth_viz_cvbridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::RGB8, depth_image);
+        //     pub_depth_viz.publish(depth_viz_cvbridge.toImageMsg());
+        // }
     }
 
 }

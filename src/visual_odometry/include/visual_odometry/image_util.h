@@ -48,6 +48,8 @@ namespace vloam {
             MatcherType matcher_type;
             SelectType selector_type;
 
+            int remove_VO_outlier;
+
         private:
             double time;
             cv::Mat img_keypoints;
