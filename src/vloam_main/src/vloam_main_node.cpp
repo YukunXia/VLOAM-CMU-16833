@@ -150,7 +150,8 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
     
     // Section 4: Solve and Publish VO
     if (count > 0) {
-        VO->solve(); // result is cam0_curr_T_cam0_last, f2f odometry
+        VO->solveLM(); // result is cam0_curr_T_cam0_last, f2f odometry
+        VO->solveRANSAC();
     }
     vloam_tf->VO2VeloAndBase(VO->cam0_curr_T_cam0_last); // transform f2f VO to world VO
     vloam_tf->dynamic_broadcaster.sendTransform(vloam_tf->world_stamped_VOtf_base); // publish for visualization // can be commented out

@@ -19,6 +19,7 @@
 
 #include <opencv2/opencv.hpp>
 #include <eigen3/Eigen/Dense>
+#include <opencv2/core/eigen.hpp>
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
 #include <ceres/loss_function.h>
@@ -51,7 +52,8 @@ namespace vloam {
 
             void processPointCloud(const sensor_msgs::PointCloud2ConstPtr &point_cloud_msg, const pcl::PointCloud<pcl::PointXYZ>& point_cloud_pcl, const bool& visualize_depth, const bool& publish_point_cloud);
 
-            void solve();
+            void solveRANSAC();
+            void solveLM();
 
             void publish ();
 

@@ -116,7 +116,65 @@ namespace vloam {
         }
     }
 
-    void VisualOdometry::solve() {
+    void VisualOdometry::solveRANSAC() {
+        if (reset_VO) {
+            for (j=0; j<3; ++j) {
+                angles_0to1[j] = 0.0;
+                t_0to1[j] = 0.0;
+            }
+        }
+
+        std::vector<cv::Point2f> prev_pts, curr_pts;
+        prev_pts.resize(matches.size());
+        curr_pts.resize(matches.size());
+        int j = 0;
+        for (const auto& match:matches) { // ~ n=1400 matches
+            prev_pts[j] = keypoints[1-i][match.queryIdx].pt;
+            curr_pts[j] = keypoints[i][match.trainIdx].pt;
+            ++j;
+        }
+        
+        cv::Mat camera_matrix;
+        cv::eigen2cv(point_cloud_utils[0].P_rect0, camera_matrix);
+        // std::cout << camera_matrix << std::endl;
+        camera_matrix = camera_matrix.colRange(0, 3);
+        cv::Mat E = cv::findEssentialMat(prev_pts, curr_pts, camera_matrix, cv::RANSAC, 0.999, 1.0);
+        // cv::Mat E = cv::findEssentialMat(prev_pts, curr_pts, camera_matrix, cv::LMEDS);
+        cv::Mat R, t;
+        int recover_result = cv::recoverPose(E, prev_pts, curr_pts, R, t);
+        ROS_INFO("recover result is = %d", recover_result);
+        ROS_INFO("det of R is %.4f", cv::determinant(R));
+
+        tf2::Transform T;
+        tf2::Matrix3x3 R_tf2(
+            R.at<double>(0, 0), R.at<double>(0, 1), R.at<double>(0, 2),
+            R.at<double>(1, 0), R.at<double>(1, 1), R.at<double>(1, 2),
+            R.at<double>(2, 0), R.at<double>(2, 1), R.at<double>(2, 2)
+        );
+        T.setBasis(R_tf2);
+        T.setOrigin(tf2::Vector3(
+            t.at<double>(0, 0), t.at<double>(1, 0), t.at<double>(2, 0)
+        ));
+        tf2::Quaternion q_tf2 = T.getRotation();
+
+        ROS_INFO("From RANSAC axis angle = %.4f, %.4f, %.4f", 
+            q_tf2.getAxis().getX() * q_tf2.getAngle(),
+            q_tf2.getAxis().getY() * q_tf2.getAngle(),
+            q_tf2.getAxis().getZ() * q_tf2.getAngle()
+        );
+        ROS_INFO("From RANSAC axis = %.4f, %.4f, %.4f, and angle = %.4f", 
+            q_tf2.getAxis().getX(),
+            q_tf2.getAxis().getY(),
+            q_tf2.getAxis().getZ(),
+            q_tf2.getAngle()
+        );
+        std::cout << "t = " << t << std::endl;
+
+        cam0_curr_T_cam0_last.setRotation(q_tf2);
+        
+    }
+
+    void VisualOdometry::solveLM() {
         ceres::LossFunction *loss_function = new ceres::HuberLoss(0.1);
         ceres::Problem problem;   
 
@@ -168,7 +226,7 @@ namespace vloam {
                 // ++counter33;
             }
             else if (depth0 > 0 and depth1 <= 0) {
-                point_3d_image0_0 << keypoints[1-i][match.queryIdx].pt.x*depth0, keypoints[1-i][match.queryIdx].pt.y*depth0, depth0;
+                point_3d_image0_0 << query_pt_x*depth0, query_pt_y*depth0, depth0;
                 point_3d_rect0_0 = (point_cloud_utils[1-i].P_rect0.leftCols(3)).colPivHouseholderQr().solve(point_3d_image0_0 - point_cloud_utils[1-i].P_rect0.col(3));
 
                 // assert(std::abs(point_3d_rect0_0(2) - depth0) < 0.0001);
@@ -177,21 +235,21 @@ namespace vloam {
                         static_cast<double>(point_3d_rect0_0(0)), 
                         static_cast<double>(point_3d_rect0_0(1)), 
                         static_cast<double>(point_3d_rect0_0(2)), 
-                        static_cast<double>(keypoints[i][match.trainIdx].pt.x * 2.0) / static_cast<double>(point_cloud_utils[i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
-                        static_cast<double>(keypoints[i][match.trainIdx].pt.y * 2.0) / static_cast<double>(point_cloud_utils[i].IMG_HEIGHT)
+                        static_cast<double>(train_pt_x * 2.0) / static_cast<double>(point_cloud_utils[i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
+                        static_cast<double>(train_pt_y * 2.0) / static_cast<double>(point_cloud_utils[i].IMG_HEIGHT)
                 );
                 problem.AddResidualBlock(cost_function, loss_function, angles_0to1, t_0to1);
                 // ++counter32;
             }
             else if (depth0 <= 0 and depth1 > 0) {
-                point_3d_image0_1 << keypoints[i][match.trainIdx].pt.x*depth1, keypoints[i][match.trainIdx].pt.y*depth1, depth1;
+                point_3d_image0_1 << train_pt_x*depth1, train_pt_y*depth1, depth1;
                 point_3d_rect0_1 = (point_cloud_utils[i].P_rect0.leftCols(3)).colPivHouseholderQr().solve(point_3d_image0_1 - point_cloud_utils[i].P_rect0.col(3));
 
             //     // assert(std::abs(point_3d_rect0_1(2) - depth1) < 0.0001);
 
                 ceres::CostFunction* cost_function = vloam::CostFunctor23::Create(
-                        static_cast<double>(keypoints[1-i][match.queryIdx].pt.x * 2.0) / static_cast<double>(point_cloud_utils[1-i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
-                        static_cast<double>(keypoints[1-i][match.queryIdx].pt.y * 2.0) / static_cast<double>(point_cloud_utils[1-i].IMG_HEIGHT),
+                        static_cast<double>(query_pt_x * 2.0) / static_cast<double>(point_cloud_utils[1-i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
+                        static_cast<double>(query_pt_y * 2.0) / static_cast<double>(point_cloud_utils[1-i].IMG_HEIGHT),
                         static_cast<double>(point_3d_rect0_1(0)), 
                         static_cast<double>(point_3d_rect0_1(1)), 
                         static_cast<double>(point_3d_rect0_1(2))
@@ -201,10 +259,10 @@ namespace vloam {
             }
             else {
                 ceres::CostFunction* cost_function = vloam::CostFunctor22::Create(
-                        static_cast<double>(keypoints[1-i][match.queryIdx].pt.x * 2.0) / static_cast<double>(point_cloud_utils[1-i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
-                        static_cast<double>(keypoints[1-i][match.queryIdx].pt.y * 2.0) / static_cast<double>(point_cloud_utils[1-i].IMG_HEIGHT),
-                        static_cast<double>(keypoints[i][match.trainIdx].pt.x * 2.0) / static_cast<double>(point_cloud_utils[i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
-                        static_cast<double>(keypoints[i][match.trainIdx].pt.y * 2.0) / static_cast<double>(point_cloud_utils[i].IMG_HEIGHT)
+                        static_cast<double>(query_pt_x * 2.0) / static_cast<double>(point_cloud_utils[1-i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
+                        static_cast<double>(query_pt_y * 2.0) / static_cast<double>(point_cloud_utils[1-i].IMG_HEIGHT),
+                        static_cast<double>(train_pt_x * 2.0) / static_cast<double>(point_cloud_utils[i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
+                        static_cast<double>(train_pt_y * 2.0) / static_cast<double>(point_cloud_utils[i].IMG_HEIGHT)
                 );
                 problem.AddResidualBlock(cost_function, loss_function, angles_0to1, t_0to1);
                 // ++counter22;
@@ -214,13 +272,20 @@ namespace vloam {
         ceres::Solve(options, &problem, &summary);
         // std::cout << summary.FullReport() << "\n";
 
-        // ROS_INFO("angles_0to1 = (%f, %f, %f)", angles_0to1[0], angles_0to1[1], angles_0to1[2]); 
-        // ROS_INFO("t_0to1 = (%f, %f, %f)", t_0to1[0], t_0to1[1], t_0to1[2]); 
+        ROS_INFO("angles_0to1 = (%.4f, %.4f, %.4f)", angles_0to1[0], angles_0to1[1], angles_0to1[2]); 
+        ROS_INFO("t_0to1 = (%.4f, %.4f, %.4f)", t_0to1[0], t_0to1[1], t_0to1[2]); 
 
         cam0_curr_T_cam0_last.setOrigin(tf2::Vector3(t_0to1[0], t_0to1[1], t_0to1[2]));
         angle = std::sqrt(std::pow(angles_0to1[0], 2) + std::pow(angles_0to1[1], 2) + std::pow(angles_0to1[2], 2));
         cam0_curr_q_cam0_last.setRotation(tf2::Vector3(angles_0to1[0]/angle, angles_0to1[1]/angle, angles_0to1[2]/angle), angle);
         cam0_curr_T_cam0_last.setRotation(cam0_curr_q_cam0_last);
+    
+        ROS_INFO("From LM axis = %.4f, %.4f, %.4f, and angle = %.4f", 
+            cam0_curr_q_cam0_last.getAxis().getX(),
+            cam0_curr_q_cam0_last.getAxis().getY(),
+            cam0_curr_q_cam0_last.getAxis().getZ(),
+            cam0_curr_q_cam0_last.getAngle()
+        );
 
         // return cam0_curr_T_cam0_last;
     }
@@ -271,13 +336,13 @@ namespace vloam {
             pub_matches_viz.publish(matches_viz_cvbridge.toImageMsg());
         }
 
-        // if (verbose_level > 0 and count > 0) {
-        //     std_msgs::Header header;
-        //     header.stamp = ros::Time::now();
-        //     cv::Mat depth_image = point_cloud_utils[i].visualizeDepth(images[i]);
-        //     depth_viz_cvbridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::RGB8, depth_image);
-        //     pub_depth_viz.publish(depth_viz_cvbridge.toImageMsg());
-        // }
+        if (verbose_level > 0 and count > 0) {
+            std_msgs::Header header;
+            header.stamp = ros::Time::now();
+            cv::Mat depth_image = point_cloud_utils[i].visualizeDepth(images[i]);
+            depth_viz_cvbridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::RGB8, depth_image);
+            pub_depth_viz.publish(depth_viz_cvbridge.toImageMsg());
+        }
     }
 
 }
