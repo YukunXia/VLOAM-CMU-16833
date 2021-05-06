@@ -138,15 +138,11 @@ void callback(const sensor_msgs::Image::ConstPtr& image_msg, const sensor_msgs::
         vloam_tf->processStaticTransform();
         VO->setUpPointCloud(camera_info_msg);
     }
-    // if (count > 0)
-    //     VO->image_util.visualizeMatches(VO->images[i], VO->images[1-i], VO->keypoints[i], VO->keypoints[1-i], VO->matches);
 
     // Section 3: Process Point Cloud // takes ~2.6ms
     pcl::fromROSMsg(*point_cloud_msg, point_cloud_pcl); // optimization can be applied if pcl library is not necessarily
     // ROS_INFO("point cloud width=%d, height=%d", point_cloud_pcl.width, point_cloud_pcl.height); // typical output "point cloud width=122270, height=1053676" // TODO: check why height is so large
     VO->processPointCloud(point_cloud_msg, point_cloud_pcl, visualize_depth, publish_point_cloud);
-    // if (count > 0)
-    //     VO->point_cloud_utils[i].visualizeDepth(VO->images[i]);
     
     // Section 4: Solve and Publish VO
     if (count > 0) {

@@ -73,6 +73,68 @@ namespace vloam {
         return keypoints;
     }
 
+    std::vector<cv::KeyPoint> ImageUtil::keyPointsNMS(
+            std::vector<cv::KeyPoint>&& keypoints,
+            const int bucket_width, // width for horizontal direction in image plane => x, col
+            const int bucket_height, // height for vertical direction in image plane => y, row
+            const int max_total_keypoints
+        ) {
+        
+        const int bucket_shape_x = std::ceil(static_cast<float>(IMG_WIDTH) / static_cast<float>(bucket_width)); // 13
+        const int bucket_shape_y = std::ceil(static_cast<float>(IMG_HEIGHT) / static_cast<float>(bucket_height)); // 4
+
+        const int max_bucket_keypoints = max_total_keypoints / (bucket_shape_x * bucket_shape_y); // 7
+
+        std::vector<std::vector<std::vector<cv::KeyPoint>>> bucket(
+            bucket_shape_x, std::vector<std::vector<cv::KeyPoint>>(
+            bucket_shape_y, std::vector<cv::KeyPoint>())
+        );
+        
+        // put all keypoints into buckets
+        for (const auto& keypoint : keypoints) {
+            bucket[ static_cast<int>(keypoint.pt.x / static_cast<float>(bucket_width))  ][
+                    static_cast<int>(keypoint.pt.y / static_cast<float>(bucket_height)) ].push_back(keypoint);
+        }
+
+        std::vector<cv::KeyPoint> keypoints_after_NMS;
+        keypoints_after_NMS.reserve(max_total_keypoints);
+
+        auto keypoints_sort = [](const cv::KeyPoint& kp0, const cv::KeyPoint& kp1) {
+            return kp0.response > kp1.response;
+        };
+
+        // iterate all bucket, sort and put keypoints with top response to the return
+        int col, row;
+        for (col=0; col<bucket_shape_x; ++col) {
+            for (row=0; row<bucket_shape_y; ++row) {
+                if (bucket[col][row].empty())
+                    continue;
+
+                if (bucket[col][row].size() <= max_bucket_keypoints) {
+                    std::copy(
+                        bucket[col][row].begin(), 
+                        bucket[col][row].end(), 
+                        std::back_inserter(keypoints_after_NMS)
+                    );
+                    continue;
+                }
+
+                std::sort(
+                    bucket[col][row].begin(), 
+                    bucket[col][row].end(), 
+                    keypoints_sort
+                ); // ascending order of keypoint response
+                std::copy(
+                    bucket[col][row].begin(), 
+                    bucket[col][row].begin()+max_bucket_keypoints, 
+                    std::back_inserter(keypoints_after_NMS)
+                );
+            }
+        }
+
+        return keypoints_after_NMS;
+    }
+
     void ImageUtil::saveKeypointsImage(const std::string file_name) {    
         if (!img_keypoints.data) {
             printf("No keypoints data \n");

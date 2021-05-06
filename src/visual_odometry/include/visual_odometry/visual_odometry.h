@@ -28,6 +28,7 @@
 #include <visual_odometry/point_cloud_util.h>
 #include <visual_odometry/image_util.h>
 #include <visual_odometry/ceres_cost_function.h>
+#include <lidar_odometry_mapping/tic_toc.h>
 
 #include <vloam_tf/vloam_tf.h>
 
@@ -95,6 +96,7 @@ namespace vloam {
             int verbose_level;
             bool reset_VO;
             int remove_VO_outlier;
+            bool keypoint_NMS;
 
             nav_msgs::Odometry visualOdometry;
             ros::Publisher pubvisualOdometry;

@@ -14,6 +14,8 @@ namespace vloam {
             ROS_BREAK();
         if (!ros::param::get("remove_VO_outlier", remove_VO_outlier))
             ROS_BREAK();
+        if (!ros::param::get("keypoint_NMS", keypoint_NMS))
+            ROS_BREAK();
 
         count = 0;
 
@@ -69,15 +71,28 @@ namespace vloam {
     }
 
     void VisualOdometry::processImage(const cv::Mat& img00) {
+        TicToc t_process_image;
+
         images[i] = img00;
-        keypoints[i] = image_util.detKeypoints(images[i]);
-        descriptors[i] = image_util.descKeypoints(keypoints[i], images[i]);    
+        if (keypoint_NMS)
+            keypoints[i] = image_util.keyPointsNMS(image_util.detKeypoints(images[i]));
+        else
+            keypoints[i] = image_util.detKeypoints(images[i]);
+        descriptors[i] = image_util.descKeypoints(keypoints[i], images[i]);
+
+        if (verbose_level > 0) {
+            ROS_INFO("keypoint number = %ld", keypoints[i].size());
+        }
         
         if (count > 1)
             matches = image_util.matchDescriptors(descriptors[1-i], descriptors[i]); // first one is prev image, second one is curr image
+
+        ROS_INFO("Processing image took %f ms +++++\n", t_process_image.toc()); 
     }
 
     void VisualOdometry::setUpPointCloud(const sensor_msgs::CameraInfoConstPtr& camera_info_msg) {
+        TicToc t_set_up_point_cloud;
+
         point_cloud_utils[0].cam_T_velo = vloam_tf->imu_eigen_T_cam0.matrix().inverse() * vloam_tf->imu_eigen_T_velo.matrix();
         point_cloud_utils[1].cam_T_velo = vloam_tf->imu_eigen_T_cam0.matrix().inverse() * vloam_tf->imu_eigen_T_velo.matrix();
 
@@ -93,9 +108,13 @@ namespace vloam {
             point_cloud_utils[1].P_rect0(j/4, j%4) = camera_info_msg->P[j]; // assume P doesn't change
         }
         // std::cout << "\nP_rect0 = \n" << point_cloud_utils[0].P_rect0 << std::endl; 
+
+        ROS_INFO("Setting up point cloud took %f ms +++++\n", t_set_up_point_cloud.toc()); 
     }
 
     void VisualOdometry::processPointCloud(const sensor_msgs::PointCloud2ConstPtr &point_cloud_msg, const pcl::PointCloud<pcl::PointXYZ>& point_cloud_pcl, const bool& visualize_depth, const bool& publish_point_cloud) {
+        TicToc t_process_point_cloud;
+
         point_cloud_3d_tilde = Eigen::MatrixXf::Ones(point_cloud_pcl.size(), 4);
         for (j=0; j<point_cloud_pcl.size(); ++j) {
             point_cloud_3d_tilde(j, 0) = point_cloud_pcl.points[j].x;
@@ -114,9 +133,13 @@ namespace vloam {
             point_cloud_in_VO_msg.header.stamp = ros::Time::now();
             pub_point_cloud.publish(point_cloud_in_VO_msg);
         }
+
+        ROS_INFO("Processing point cloud took %f ms +++++\n", t_process_point_cloud.toc()); 
     }
 
     void VisualOdometry::solveRANSAC() {
+        TicToc t_ransac;
+
         if (reset_VO) {
             for (j=0; j<3; ++j) {
                 angles_0to1[j] = 0.0;
@@ -141,9 +164,14 @@ namespace vloam {
         cv::Mat E = cv::findEssentialMat(prev_pts, curr_pts, camera_matrix, cv::RANSAC, 0.999, 1.0);
         // cv::Mat E = cv::findEssentialMat(prev_pts, curr_pts, camera_matrix, cv::LMEDS);
         cv::Mat R, t;
-        int recover_result = cv::recoverPose(E, prev_pts, curr_pts, R, t);
-        ROS_INFO("recover result is = %d", recover_result);
-        ROS_INFO("det of R is %.4f", cv::determinant(R));
+        cv::Mat mask, triangulated_points;
+        int recover_result = cv::recoverPose(E, prev_pts, curr_pts, camera_matrix, R, t, 200.0f);
+        // ROS_INFO("recover result is = %d", recover_result);
+        // // ROS_INFO("det of R is %.4f", cv::determinant(R));
+        // ROS_INFO("R is  \n %.4f, %.4f, %.4f\n %.4f, %.4f, %.4f \n %.4f, %.4f, %.4f \n",
+        //                 R.at<double>(0, 0), R.at<double>(0, 1), R.at<double>(0, 2),
+        //                 R.at<double>(1, 0), R.at<double>(1, 1), R.at<double>(1, 2),
+        //                 R.at<double>(2, 0), R.at<double>(2, 1), R.at<double>(2, 2));
 
         tf2::Transform T;
         tf2::Matrix3x3 R_tf2(
@@ -157,24 +185,30 @@ namespace vloam {
         ));
         tf2::Quaternion q_tf2 = T.getRotation();
 
-        ROS_INFO("From RANSAC axis angle = %.4f, %.4f, %.4f", 
+        // ROS_INFO("R quaternion is %.4f, %.4f, %.4f, %.4f", q_tf2.getX(), q_tf2.getY(), q_tf2.getZ(), q_tf2.getW());
+
+        ROS_INFO("From RANSAC, axis angle = %.4f, %.4f, %.4f", 
             q_tf2.getAxis().getX() * q_tf2.getAngle(),
             q_tf2.getAxis().getY() * q_tf2.getAngle(),
             q_tf2.getAxis().getZ() * q_tf2.getAngle()
         );
-        ROS_INFO("From RANSAC axis = %.4f, %.4f, %.4f, and angle = %.4f", 
-            q_tf2.getAxis().getX(),
-            q_tf2.getAxis().getY(),
-            q_tf2.getAxis().getZ(),
-            q_tf2.getAngle()
-        );
-        std::cout << "t = " << t << std::endl;
+        // ROS_INFO("From RANSAC axis = %.4f, %.4f, %.4f, and angle = %.4f", 
+        //     q_tf2.getAxis().getX(),
+        //     q_tf2.getAxis().getY(),
+        //     q_tf2.getAxis().getZ(),
+        //     q_tf2.getAngle()
+        // );
+        ROS_INFO("Froma RANSAC, t = %.4f, %.4f, %.4f", t.at<double>(0,0), t.at<double>(1,0), t.at<double>(2,0) );
+        // std::cout << "t = " << t << std::endl;
 
         cam0_curr_T_cam0_last.setRotation(q_tf2);
         
+        ROS_INFO("RANSAC VO took %f ms +++++\n", t_ransac.toc()); 
     }
 
     void VisualOdometry::solveLM() {
+        TicToc t_LM;
+
         ceres::LossFunction *loss_function = new ceres::HuberLoss(0.1);
         ceres::Problem problem;   
 
@@ -280,14 +314,16 @@ namespace vloam {
         cam0_curr_q_cam0_last.setRotation(tf2::Vector3(angles_0to1[0]/angle, angles_0to1[1]/angle, angles_0to1[2]/angle), angle);
         cam0_curr_T_cam0_last.setRotation(cam0_curr_q_cam0_last);
     
-        ROS_INFO("From LM axis = %.4f, %.4f, %.4f, and angle = %.4f", 
-            cam0_curr_q_cam0_last.getAxis().getX(),
-            cam0_curr_q_cam0_last.getAxis().getY(),
-            cam0_curr_q_cam0_last.getAxis().getZ(),
-            cam0_curr_q_cam0_last.getAngle()
-        );
+        // ROS_INFO("From LM axis = %.4f, %.4f, %.4f, and angle = %.4f", 
+        //     cam0_curr_q_cam0_last.getAxis().getX(),
+        //     cam0_curr_q_cam0_last.getAxis().getY(),
+        //     cam0_curr_q_cam0_last.getAxis().getZ(),
+        //     cam0_curr_q_cam0_last.getAngle()
+        // );
 
         // return cam0_curr_T_cam0_last;
+
+        ROS_INFO("LM VO took %f ms +++++\n", t_LM.toc()); 
     }
 
     void VisualOdometry::publish () {
@@ -331,7 +367,7 @@ namespace vloam {
         if (verbose_level > 0 and count > 1) {
             std_msgs::Header header;
             header.stamp = ros::Time::now();
-            cv::Mat match_image = image_util.visualizeMatches(images[1-i], images[i], keypoints[1-i], keypoints[i], matches);
+            cv::Mat match_image = image_util.visualizeMatches(images[1-i], images[i], keypoints[1-i], keypoints[i], matches, 10);
             matches_viz_cvbridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::RGB8, match_image);
             pub_matches_viz.publish(matches_viz_cvbridge.toImageMsg());
         }

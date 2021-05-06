@@ -26,6 +26,7 @@ find_package(catkin REQUIRED COMPONENTS
   roslib
   tf2
   vloam_tf
+  lidar_odometry_mapping
 )
 
 ## System dependencies are found with CMake's conventions
