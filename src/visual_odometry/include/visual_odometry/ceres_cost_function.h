@@ -49,32 +49,18 @@ namespace vloam {
 
         template <typename T>
         bool operator()(const T* const angles, const T* const t, T* residuals) const {
-            T point3d_0[3] = {T(observed_x0), T(observed_y0), T(observed_z0)};
+            T X0[3] = {T(observed_x0), T(observed_y0), T(observed_z0)};
             T observed_x1_bar_T = T(observed_x1_bar);
             T observed_y1_bar_T = T(observed_y1_bar);
 
-            T R[9];
-            ceres::AngleAxisToRotationMatrix(angles, R);
+            T R_dot_X0[3];
+            ceres::AngleAxisRotatePoint(angles, X0, R_dot_X0);
+            R_dot_X0[0] += t[0];
+            R_dot_X0[1] += t[1];
+            R_dot_X0[2] += t[2];
 
-            T R1_minus_x1bar_R3[3] = {
-                R[0] - observed_x1_bar_T * R[6], 
-                R[1] - observed_x1_bar_T * R[7], 
-                R[2] - observed_x1_bar_T * R[8]};
-            T R2_minus_y1bar_R3[3] = {
-                R[3] - observed_x1_bar_T * R[6], 
-                R[4] - observed_x1_bar_T * R[7], 
-                R[5] - observed_x1_bar_T * R[8]};
-
-            residuals[0] = 
-                            R1_minus_x1bar_R3[0] * point3d_0[0] + 
-                            R1_minus_x1bar_R3[1] * point3d_0[1] + 
-                            R1_minus_x1bar_R3[2] * point3d_0[2] + 
-                            t[0] - observed_x1_bar_T * t[2];
-            residuals[1] = 
-                            R2_minus_y1bar_R3[0] * point3d_0[0] + 
-                            R2_minus_y1bar_R3[1] * point3d_0[1] + 
-                            R2_minus_y1bar_R3[2] * point3d_0[2] + 
-                            t[1] - observed_y1_bar_T * t[2];
+            residuals[0] = R_dot_X0[0] - R_dot_X0[2] * observed_x1_bar_T;
+            residuals[1] = R_dot_X0[1] - R_dot_X0[2] * observed_y1_bar_T;
 
             return true;
         }
@@ -100,38 +86,26 @@ namespace vloam {
 
         template <typename T>
         bool operator()(const T* const angles, const T* const t, T* residuals) const {
-            T point3d_1[3] = {T(observed_x1), T(observed_y1), T(observed_z1)};
             T observed_x0_bar_T = T(observed_x0_bar);
             T observed_y0_bar_T = T(observed_y0_bar);
 
-            T R[9];
-            ceres::AngleAxisToRotationMatrix(angles, R);
-            // T R_transpose[9] = { R[0], R[3], R[6],
-            //                      R[1], R[4], R[7], 
-            //                      R[2], R[5], R[8]};
-            T R_transpose_dot_t[3] = {  R[0]*t[0] + R[3]*t[1] + R[6]*t[2], 
-                                        R[1]*t[0] + R[4]*t[1] + R[7]*t[2], 
-                                        R[2]*t[0] + R[5]*t[1] + R[8]*t[2]};
+            T angles_inv[3] = {-angles[0], -angles[1], -angles[2]};
+            T X1[3] = {T(observed_x1), T(observed_y1), T(observed_z1)};
 
-            T RT1_minus_x0bar_RT3[3] = {
-                R[0] - observed_x0_bar_T * R[2], 
-                R[3] - observed_x0_bar_T * R[5], 
-                R[6] - observed_x0_bar_T * R[8]};
-            T RT2_minus_y0bar_RT3[3] = {
-                R[1] - observed_y0_bar_T * R[2], 
-                R[4] - observed_y0_bar_T * R[5], 
-                R[7] - observed_y0_bar_T * R[8]};
+            T RT_dot_X1[3];
+            ceres::AngleAxisRotatePoint(angles_inv, X1, RT_dot_X1);
 
-            residuals[0] = 
-                            RT1_minus_x0bar_RT3[0] * point3d_1[0] + 
-                            RT1_minus_x0bar_RT3[1] * point3d_1[1] + 
-                            RT1_minus_x0bar_RT3[2] * point3d_1[2] - 
-                            R_transpose_dot_t[0] + observed_y0_bar_T * R_transpose_dot_t[2];
-            residuals[1] = 
-                            RT2_minus_y0bar_RT3[0] * point3d_1[0] + 
-                            RT2_minus_y0bar_RT3[1] * point3d_1[1] + 
-                            RT2_minus_y0bar_RT3[2] * point3d_1[2] - 
-                            R_transpose_dot_t[1] + observed_y0_bar_T * R_transpose_dot_t[2];
+            T RT_dot_t[3];
+            ceres::AngleAxisRotatePoint(angles_inv, t, RT_dot_t);
+
+            T RT_dot_X1_minus_RT_dot_t[3] = {
+                RT_dot_X1[0] - RT_dot_t[0],
+                RT_dot_X1[1] - RT_dot_t[1],
+                RT_dot_X1[2] - RT_dot_t[2]
+            };
+
+            residuals[0] = RT_dot_X1_minus_RT_dot_t[0] - RT_dot_X1_minus_RT_dot_t[2] * observed_x0_bar_T;
+            residuals[1] = RT_dot_X1_minus_RT_dot_t[1] - RT_dot_X1_minus_RT_dot_t[2] * observed_y0_bar_T;
 
             return true;
         }
@@ -157,29 +131,16 @@ namespace vloam {
 
         template <typename T>
         bool operator()(const T* const angles, const T* const t, T* residuals) const {
-            T observed_x0_bar_T = T(observed_x0_bar);
-            T observed_y0_bar_T = T(observed_y0_bar);
-            T observed_x1_bar_T = T(observed_x1_bar);
-            T observed_y1_bar_T = T(observed_y1_bar);
+            T observed_X0_bar_T[3] = {T(observed_x0_bar), T(observed_y0_bar), T(1.0)};
+            T observed_X1_bar_T[3] = {T(observed_x1_bar), T(observed_y1_bar), T(1.0)};
 
-            T R[9];
-            ceres::AngleAxisToRotationMatrix(angles, R);
+            T observed_X0_bar_T_to1[3];
+            ceres::AngleAxisRotatePoint(angles, observed_X0_bar_T, observed_X0_bar_T_to1);
 
-            T x1_bar_dot_skew_t[3] = {
-                -observed_y1_bar_T*t[2] + t[1], 
-                observed_x1_bar_T*t[2] - t[0],
-                -observed_x1_bar_T*t[1] + observed_y1_bar_T*t[0]
-            };
+            T t_cross_observed_X0_bar_T_to1[3];
+            ceres::CrossProduct(t, observed_X0_bar_T_to1, t_cross_observed_X0_bar_T_to1);
 
-            T x1_bar_dot_skew_t_dot_R[3] = {
-                x1_bar_dot_skew_t[0]*R[0] + x1_bar_dot_skew_t[1]*R[3] + x1_bar_dot_skew_t[2]*R[6],
-                x1_bar_dot_skew_t[0]*R[1] + x1_bar_dot_skew_t[1]*R[4] + x1_bar_dot_skew_t[2]*R[7],
-                x1_bar_dot_skew_t[0]*R[2] + x1_bar_dot_skew_t[1]*R[5] + x1_bar_dot_skew_t[2]*R[8]
-            };
-
-            residuals[0] =  x1_bar_dot_skew_t_dot_R[0]*observed_x0_bar_T + 
-                            x1_bar_dot_skew_t_dot_R[1]*observed_y0_bar_T +
-                            x1_bar_dot_skew_t_dot_R[2];
+            residuals[0] = ceres::DotProduct(observed_X1_bar_T, t_cross_observed_X0_bar_T_to1);
 
             return true;
         }

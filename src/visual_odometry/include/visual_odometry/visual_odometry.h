@@ -54,7 +54,8 @@ namespace vloam {
             void processPointCloud(const sensor_msgs::PointCloud2ConstPtr &point_cloud_msg, const pcl::PointCloud<pcl::PointXYZ>& point_cloud_pcl, const bool& visualize_depth, const bool& publish_point_cloud);
 
             void solveRANSAC();
-            void solveLM();
+            void solveNlsAll();
+            void solveNls2dOnly();
 
             void publish ();
 
