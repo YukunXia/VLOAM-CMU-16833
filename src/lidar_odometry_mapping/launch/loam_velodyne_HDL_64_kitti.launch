@@ -1,7 +1,7 @@
 <launch>
     <!-- <remap from="/velodyne_points" to="/kitti/velo/pointcloud"/> -->
     <param name="scan_line" type="int" value="64" />
-    <param name="skip_frame_number" type="int" value="5" />
+    <param name="mapping_skip_frame" type="int" value="1" />
     <param name="map_pub_number" type="int" value="20" />
     <param name="loam_verbose_level" type="int" value="1" />
 

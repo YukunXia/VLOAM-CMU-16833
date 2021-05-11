@@ -17,9 +17,9 @@
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 
-#include <opencv2/opencv.hpp>
+#include <opencv4/opencv2/opencv.hpp>
 #include <eigen3/Eigen/Dense>
-#include <opencv2/core/eigen.hpp>
+#include <opencv4/opencv2/core/eigen.hpp>
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
 #include <ceres/loss_function.h>
@@ -69,6 +69,8 @@ namespace vloam {
             std::vector<std::vector<cv::KeyPoint>> keypoints;
             std::vector<cv::Mat> descriptors;
             std::vector<cv::DMatch> matches;
+            std::vector<std::vector<cv::Point2f>> keypoints_2f;
+            std::vector<uchar> optical_flow_status;
 
             std::vector<vloam::PointCloudUtil> point_cloud_utils;
             Eigen::MatrixXf point_cloud_3d_tilde;
@@ -95,9 +97,13 @@ namespace vloam {
             ros::NodeHandle nh;
 
             int verbose_level;
-            bool reset_VO;
+            bool reset_VO_to_identity;
             int remove_VO_outlier;
             bool keypoint_NMS;
+            bool CLAHE;
+            cv::Ptr<cv::CLAHE> clahe;
+            bool visualize_optical_flow;
+            bool optical_flow_match;
 
             nav_msgs::Odometry visualOdometry;
             ros::Publisher pubvisualOdometry;
@@ -107,6 +113,8 @@ namespace vloam {
             cv_bridge::CvImage matches_viz_cvbridge;
             image_transport::Publisher pub_depth_viz;
             cv_bridge::CvImage depth_viz_cvbridge;
+            image_transport::Publisher pub_optical_flow_viz;
+            cv_bridge::CvImage optical_flow_viz_cvbridge;
     };
 }
 

@@ -184,7 +184,7 @@ namespace vloam {
             TicToc t_whole;
 
             bool skip_frame;
-            int skip_frame_number;
+            int mapping_skip_frame;
             int map_pub_number;
 
     };

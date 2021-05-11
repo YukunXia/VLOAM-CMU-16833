@@ -425,7 +425,7 @@ namespace vloam {
         cv::waitKey(0); // wait for key to be pressed
     }
 
-    cv::Mat PointCloudUtil::visualizeDepth(cv::Mat gray_image) {
+    cv::Mat PointCloudUtil::visualizeDepth(const cv::Mat& gray_image) {
         image_with_depth = gray_image.clone();
         cv::cvtColor(image_with_depth, image_with_depth, cv::COLOR_GRAY2BGR);
         int x, y;

@@ -103,7 +103,7 @@ namespace vloam {
             const double DISTANCE_SQ_THRESHOLD = 25;
             const double NEARBY_SCAN = 2.5;
 
-            int skip_frame_number;
+            int mapping_skip_frame;
             bool systemInited;
 
             double timeCornerPointsSharp;

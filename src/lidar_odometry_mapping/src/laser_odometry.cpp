@@ -50,7 +50,7 @@ namespace vloam {
         corner_correspondence = 0;
         plane_correspondence = 0;
 
-        if (!ros::param::get("skip_frame_number", skip_frame_number))
+        if (!ros::param::get("mapping_skip_frame", mapping_skip_frame))
             ROS_BREAK();        
 
         systemInited = false;
@@ -543,8 +543,35 @@ namespace vloam {
         laserOdometry.pose.pose.position.z = t_w_curr.z();
         pubLaserOdometry.publish(laserOdometry);
 
+        ROS_INFO(
+            "lidar_odometry: q = %.4f, %.4f, %.4f, %.4f; t = %.4f, %.4f, %.4f",
+            q_last_curr.x(),
+            q_last_curr.y(),
+            q_last_curr.z(),
+            q_last_curr.w(),
+            t_last_curr.x(),
+            t_last_curr.y(),
+            t_last_curr.z()
+        );
+
         // vloam_tf->cam0_init_eigen_LOT_cam0_last.translation() = t_w_curr;
         // vloam_tf->cam0_init_eigen_LOT_cam0_last.linear() = q_w_curr.normalized().toRotationMatrix();
+
+        // frame2frame estimation recording
+        vloam_tf->base_prev_LOT_base_curr.setOrigin(tf2::Vector3(
+            t_last_curr.x(),
+            t_last_curr.y(),
+            t_last_curr.z()
+        ));
+        vloam_tf->base_prev_LOT_base_curr.setRotation(tf2::Quaternion(
+            q_last_curr.x(),
+            q_last_curr.y(),
+            q_last_curr.z(),
+            q_last_curr.w()
+        ));
+        vloam_tf->cam0_curr_LOT_cam0_prev = vloam_tf->base_T_cam0.inverse() * vloam_tf->base_prev_LOT_base_curr.inverse() * vloam_tf->base_T_cam0;
+
+        // world2frame estimation
         vloam_tf->world_LOT_base_last.setOrigin(tf2::Vector3(
             t_w_curr.x(),
             t_w_curr.y(),
@@ -565,7 +592,7 @@ namespace vloam {
         laserPath.header.frame_id = "map";
         pubLaserPath.publish(laserPath);
 
-        // if (frameCount % skip_frame_number == 0) // no need to publish
+        // if (frameCount % mapping_skip_frame == 0) // no need to publish
         // {
         //     frameCount = 0;
 
@@ -604,7 +631,7 @@ namespace vloam {
         q_w_curr_ = q_w_curr;
         t_w_curr_ = t_w_curr;
 
-        if (frameCount % skip_frame_number == 0) {
+        if (frameCount % mapping_skip_frame == 0) {
             laserCloudCornerLast_ = laserCloudCornerLast;
             laserCloudSurfLast_ = laserCloudSurfLast;
             laserCloudFullRes_ = laserCloudFullRes;

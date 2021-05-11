@@ -21,7 +21,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 #find_package(Eigen3 REQUIRED)
 find_package(PCL REQUIRED)
-find_package(OpenCV 4.5.1 REQUIRED PATHS "/usr/local/lib/opencv4/")
+find_package(OpenCV 4.5.1 REQUIRED)
 find_package(Ceres REQUIRED)
 
 include_directories(

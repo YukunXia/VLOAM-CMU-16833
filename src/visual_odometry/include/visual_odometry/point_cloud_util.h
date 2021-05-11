@@ -8,7 +8,7 @@
 #include <ros/package.h>
 
 #include <eigen3/Eigen/Dense>
-#include <opencv2/opencv.hpp>
+#include <opencv4/opencv2/opencv.hpp>
 
 #ifndef POINT_CLOUD_UTIL_H
 #define POINT_CLOUD_UTIL_H
@@ -32,7 +32,7 @@ namespace vloam {
             float queryDepth(const float x, const float y, const int searching_radius = 2) const;
             void visualizeDepthCallBack(int event, int x, int y);
             void visualizeDepth(const std::string image_file_path);
-            cv::Mat visualizeDepth(cv::Mat gray_image);
+            cv::Mat visualizeDepth(const cv::Mat& gray_image);
     
         // private:
             const int IMG_HEIGHT = 375;

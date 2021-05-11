@@ -40,6 +40,7 @@ namespace vloam {
             // dynamic transform for LO
             tf2::Transform world_LOT_base_last, cam0_init_LOT_cam0_last, cam0_init_LOT_cam0_start, cam0_start_LOT_cam0_last;
             Eigen::Isometry3f cam0_start_eigen_LOT_cam0_last;
+            tf2::Transform base_prev_LOT_base_curr, cam0_curr_LOT_cam0_prev;
 
             // dynamic transform for MO
             tf2::Transform world_MOT_base_last, cam0_init_MOT_cam0_last, cam0_init_MOT_cam0_start, cam0_start_MOT_cam0_last;

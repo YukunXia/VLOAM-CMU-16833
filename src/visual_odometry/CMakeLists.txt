@@ -8,7 +8,7 @@ add_compile_options(-std=c++14 -O3)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(OpenCV 4.5.1 REQUIRED)
+find_package(OpenCV 4.5.1)
 
 find_package(PCL 1.2 REQUIRED)
 include_directories(${PCL_INCLUDE_DIRS})

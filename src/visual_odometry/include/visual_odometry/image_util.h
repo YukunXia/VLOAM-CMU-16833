@@ -3,9 +3,7 @@
 #include <string>
 #include <algorithm>
 #include <iterator>
-#include <opencv2/opencv.hpp>
-#include <opencv2/features2d.hpp>
-
+#include <opencv4/opencv2/opencv.hpp>
 
 #include <ros/ros.h>
 #include <ros/package.h>
@@ -14,13 +12,13 @@
 #define IMAGE_UTIL_H
 
 namespace vloam {
-    enum class DetectorType {ShiTomasi, BRISK, FAST, ORB, AKAZE};
+    enum class DetectorType {ShiTomasi, BRISK, FAST, ORB, AKAZE, SIFT};
     static const std::string DetectorType_str[] = {
-        "ShiTomasi", "BRISK", "FAST", "ORB", "AKAZE"
+        "ShiTomasi", "BRISK", "FAST", "ORB", "AKAZE", "SIFT"
     };
-    enum class DescriptorType {BRISK, ORB, BRIEF, AKAZE, FREAK};
+    enum class DescriptorType {BRISK, ORB, BRIEF, AKAZE, FREAK, SIFT};
     static const std::string DescriptorType_str[] = {
-        "BRISK", "ORB", "BRIEF", "AKAZE", "FREAK"
+        "BRISK", "ORB", "BRIEF", "AKAZE", "FREAK", "SIFT"
     };
     enum class MatcherType {BF, FLANN};
     enum class SelectType {NN, KNN};
@@ -47,7 +45,9 @@ namespace vloam {
             cv::Mat descKeypoints(std::vector<cv::KeyPoint> &keypoints, cv::Mat &img);
             std::vector<cv::DMatch> matchDescriptors(cv::Mat &desc_source, cv::Mat &desc_ref);
             void visualizeMatchesCallBack(int event, int x, int y);
-            cv::Mat visualizeMatches(const cv::Mat &image0, const cv::Mat &image1, const std::vector<cv::KeyPoint> &keypoints0, const std::vector<cv::KeyPoint> &keypoints1, const std::vector<cv::DMatch>& matches, const int stride = 10);
+            cv::Mat visualizeMatches(const cv::Mat &image0, const cv::Mat &image1, const std::vector<cv::KeyPoint> &keypoints0, const std::vector<cv::KeyPoint> &keypoints1, const std::vector<cv::DMatch>& matches);
+            std::tuple<std::vector<cv::Point2f>, std::vector<cv::Point2f>, std::vector<uchar>> calculateOpticalFlow(const cv::Mat &image0, const cv::Mat &image1, const std::vector<cv::KeyPoint> &keypoints0);
+            cv::Mat visualizeOpticalFlow(const cv::Mat &image1, const std::vector<cv::Point2f>& keypoints0_2f, const std::vector<cv::Point2f>& keypoints1_2f, const std::vector<uchar>& optical_flow_status);
 
             // std::string path_prefix;
             bool print_result;
@@ -58,6 +58,7 @@ namespace vloam {
             SelectType selector_type;
 
             int remove_VO_outlier;
+            bool optical_flow_match;
 
         private:
             double time;

@@ -117,7 +117,7 @@ namespace vloam {
         laserCloudValidNum = 0;
         laserCloudSurroundNum = 0;
 
-        if (!ros::param::get("skip_frame_number", skip_frame_number))
+        if (!ros::param::get("mapping_skip_frame", mapping_skip_frame))
             ROS_BREAK();
         if (!ros::param::get("map_pub_number", map_pub_number))
             ROS_BREAK();
@@ -717,7 +717,7 @@ namespace vloam {
         odomAftMapped.header.frame_id = "map";
         odomAftMapped.child_frame_id = "aft_mapped";
         odomAftMapped.header.stamp = ros::Time::now(); // TODO: globally config time stamp
-        if (frameCount % 5 == 0) {
+        if (!skip_frame) {
             odomAftMapped.pose.pose.orientation.x = q_w_curr.x();
             odomAftMapped.pose.pose.orientation.y = q_w_curr.y();
             odomAftMapped.pose.pose.orientation.z = q_w_curr.z();
@@ -737,6 +737,17 @@ namespace vloam {
                 q_w_curr.z(),
                 q_w_curr.w()
             ));
+
+            // ROS_INFO(
+            //     "lidar_mapping: q = %.4f, %.4f, %.4f, %.4f; t = %.4f, %.4f, %.4f",
+            //     q_w_curr.x(),
+            //     q_w_curr.y(),
+            //     q_w_curr.z(),
+            //     q_w_curr.w(),
+            //     t_w_curr.x(),
+            //     t_w_curr.y(),
+            //     t_w_curr.z()
+            // );
         }
         else {
             odomAftMapped.pose.pose.orientation.x = q_w_curr_highfreq.x();
@@ -782,7 +793,7 @@ namespace vloam {
         transform.setRotation(q);
         br.sendTransform(tf::StampedTransform(transform, odomAftMapped.header.stamp, "map", "aft_mapped"));
 
-        if ((frameCount*skip_frame_number) % map_pub_number == 0) // 0.5 Hz? 
+        if ((frameCount*mapping_skip_frame) % map_pub_number == 0) // 0.5 Hz? 
         {
             pcl::PointCloud<PointType> laserCloudMap;
             for (int i = 0; i < 4851; i++)

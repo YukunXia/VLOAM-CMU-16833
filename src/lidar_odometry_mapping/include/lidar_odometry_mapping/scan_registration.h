@@ -42,7 +42,7 @@
 #include "lidar_odometry_mapping/common.h"
 #include "lidar_odometry_mapping/tic_toc.h"
 #include <nav_msgs/Odometry.h>
-#include <opencv2/opencv.hpp>
+#include <opencv4/opencv2/opencv.hpp>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>

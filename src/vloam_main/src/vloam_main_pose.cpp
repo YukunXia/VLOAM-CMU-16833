@@ -39,7 +39,7 @@
 #include <vloam_main/vloam_mainFeedback.h>
 #include <vloam_main/vloam_mainResult.h>
 
-#include <opencv2/opencv.hpp>
+#include <opencv4/opencv2/opencv.hpp>
 #include <eigen3/Eigen/Dense>
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>

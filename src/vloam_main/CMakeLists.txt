@@ -8,7 +8,7 @@ add_compile_options(-std=c++14 -O3)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 
-find_package(OpenCV 4.5.1 REQUIRED PATHS "/usr/local/lib/opencv4/")
+find_package(OpenCV 4.5.1 REQUIRED)
 
 # find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 

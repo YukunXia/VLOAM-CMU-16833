@@ -8,12 +8,14 @@ namespace vloam {
             time = (double)cv::getTickCount();
 
         if (detector_type == DetectorType::ShiTomasi) {
-            int block_size = 4;       //  size of an average block for computing a derivative covariation matrix over each pixel neighborhood
-            double max_overlap = 0.0; // max. permissible overlap between two features in %
-            double min_distance = (1.0 - max_overlap) * block_size;
-            int maxCorners = img.rows * img.cols / std::max(1.0, min_distance); // max. num. of keypoints
+            int block_size = 5;       //  size of an average block for computing a derivative covariation matrix over each pixel neighborhood
+            // double max_overlap = 0.0; // max. permissible overlap between two features in %
+            // double min_distance = (1.0 - max_overlap) * block_size;
+            double min_distance = block_size * 1.5;
+            // int maxCorners = img.rows * img.cols / std::max(1.0, min_distance); // max. num. of keypoints
+            int maxCorners = 1024;
 
-            double quality_level = 0.01; // minimal accepted quality of image corners
+            double quality_level = 0.03; // minimal accepted quality of image corners
             double k = 0.04;
 
             std::vector<cv::Point2f> corners;
@@ -36,12 +38,32 @@ namespace vloam {
             cv::Ptr<cv::FeatureDetector> detector;
             if (detector_type == DetectorType::BRISK)
                 detector = cv::BRISK::create();
-            else if (detector_type == DetectorType::ORB)
-                detector = cv::ORB::create();
+            else if (detector_type == DetectorType::ORB) {
+                int num_features = 2000;
+                float scaleFactor = 1.2f;
+                int nlevels = 8;
+                int edgeThreshold = 31;
+                int firstLevel = 0;
+                int WTA_K = 2;
+                cv::ORB::ScoreType scoreType = cv::ORB::FAST_SCORE;
+                int patchSize = 31;
+                int fastThreshold = 20;
+                detector = cv::ORB::create(
+                    num_features,
+                    scaleFactor,
+                    nlevels,
+                    edgeThreshold,
+                    firstLevel,
+                    WTA_K,
+                    scoreType,
+                    patchSize,
+                    fastThreshold
+                );
+            }
             else if (detector_type == DetectorType::AKAZE)
                 detector = cv::AKAZE::create();
-            // else if (detector_type == DetectorType::SIFT)
-            //     detector = cv::SIFT::create();
+            else if (detector_type == DetectorType::SIFT)
+                detector = cv::SIFT::create();
             else {
                 std::cerr << "Detector is not implemented" << std::endl;
                 exit(EXIT_FAILURE);
@@ -73,7 +95,7 @@ namespace vloam {
         return keypoints;
     }
 
-    std::vector<cv::KeyPoint> ImageUtil::keyPointsNMS(
+    std::vector<cv::KeyPoint> ImageUtil::keyPointsNMS( // TODO: check if opencv detector minDistance helps here
             std::vector<cv::KeyPoint>&& keypoints,
             const int bucket_width, // width for horizontal direction in image plane => x, col
             const int bucket_height, // height for vertical direction in image plane => y, row
@@ -167,9 +189,9 @@ namespace vloam {
         else if (descriptor_type == DescriptorType::AKAZE) {
             extractor = cv::AKAZE::create();
         }    
-        // else if (descriptor_type == DescriptorType::SIFT) {
-        //     extractor = cv::SIFT::create();
-        // }
+        else if (descriptor_type == DescriptorType::SIFT) {
+            extractor = cv::SIFT::create();
+        }
         else {
             std::cerr << "Decscriptor is not implemented" << std::endl;
             exit(EXIT_FAILURE);
@@ -200,9 +222,9 @@ namespace vloam {
             if (descriptor_type == DescriptorType::AKAZE or descriptor_type == DescriptorType::BRISK or descriptor_type == DescriptorType::ORB) {
                 normType = cv::NORM_HAMMING;
             }
-            // else if (descriptor_type == DescriptorType::SIFT) {
-            //     normType = cv::NORM_L2;
-            // }
+            else if (descriptor_type == DescriptorType::SIFT) {
+                normType = cv::NORM_L2;
+            }
             else {
                 std::cerr << "Decscriptor is not implemented" << std::endl;
             }
@@ -211,6 +233,8 @@ namespace vloam {
         else if (matcher_type == MatcherType::FLANN) {
             if (descriptors0.type() != CV_32F) { // OpenCV bug workaround : convert binary descriptors to floating point due to a bug in current OpenCV implementation
                 descriptors0.convertTo(descriptors0, CV_32F);
+            }
+            if (descriptors1.type() != CV_32F) { // OpenCV bug workaround : convert binary descriptors to floating point due to a bug in current OpenCV implementation
                 descriptors1.convertTo(descriptors1, CV_32F);
             }
 
@@ -265,17 +289,18 @@ namespace vloam {
             iu->visualizeMatchesCallBack(ev, x, y);
     }
 
-    cv::Mat ImageUtil::visualizeMatches(const cv::Mat &image0, const cv::Mat &image1, const std::vector<cv::KeyPoint> &keypoints0, const std::vector<cv::KeyPoint> &keypoints1, const std::vector<cv::DMatch>& matches, const int stride) {
+    cv::Mat ImageUtil::visualizeMatches(const cv::Mat &image0, const cv::Mat &image1, const std::vector<cv::KeyPoint> &keypoints0, const std::vector<cv::KeyPoint> &keypoints1, const std::vector<cv::DMatch>& matches) {
         std::vector<cv::DMatch> matches_dnsp;
+        const int stride = std::ceil(static_cast<float>(matches.size()) / 100.0f); // at most 100 points
 
-        int prev_pt_x, query_pt_y, curr_pt_x, train_pt_y;
+        int prev_pt_x, prev_pt_y, curr_pt_x, curr_pt_y;
         for (int i=0; i<matches.size(); i+=stride) {
             prev_pt_x = keypoints0[matches[i].queryIdx].pt.x;
-            query_pt_y = keypoints0[matches[i].queryIdx].pt.y;
+            prev_pt_y = keypoints0[matches[i].queryIdx].pt.y;
             curr_pt_x = keypoints1[matches[i].trainIdx].pt.x;
-            train_pt_y = keypoints1[matches[i].trainIdx].pt.y;
+            curr_pt_y = keypoints1[matches[i].trainIdx].pt.y;
             if (remove_VO_outlier > 0) {
-                if (std::pow(prev_pt_x - curr_pt_x, 2) + std::pow(query_pt_y - train_pt_y, 2) > remove_VO_outlier*remove_VO_outlier)
+                if (std::pow(prev_pt_x - curr_pt_x, 2) + std::pow(prev_pt_y - curr_pt_y, 2) > remove_VO_outlier*remove_VO_outlier)
                     continue;
             }
             matches_dnsp.push_back(matches[i]);
@@ -286,7 +311,7 @@ namespace vloam {
                         image1, keypoints1,
                         matches_dnsp, matchImg,
                         cv::Scalar::all(-1), cv::Scalar::all(-1),
-                        std::vector<char>(), cv::DrawMatchesFlags::DRAW_RICH_KEYPOINTS);
+                        std::vector<char>(), cv::DrawMatchesFlags::DEFAULT);
 
         // std::string windowName = "Matching keypoints between two camera images";
         // cv::namedWindow(windowName, 7);
@@ -297,5 +322,55 @@ namespace vloam {
         // ROS_INFO("image showed");
 
         return matchImg;
+    }
+
+    std::tuple<std::vector<cv::Point2f>, std::vector<cv::Point2f>, std::vector<uchar>> ImageUtil::calculateOpticalFlow(const cv::Mat &image0, const cv::Mat &image1, const std::vector<cv::KeyPoint> &keypoints0) {
+        std::vector<cv::Point2f> keypoints0_2f;
+        std::vector<cv::Point2f> keypoints1_2f;
+        std::vector<uchar> optical_flow_status;
+
+        // transform keypoints to points_2f
+        std::transform(keypoints0.cbegin(), keypoints0.cend(), std::back_inserter(keypoints0_2f), [](const cv::KeyPoint& keypoint) {
+            return keypoint.pt;
+        });
+
+        // calculate optical flow
+        std::vector<float> err;
+        cv::TermCriteria criteria = cv::TermCriteria((cv::TermCriteria::COUNT) + (cv::TermCriteria::EPS), 10, 0.03);
+        cv::calcOpticalFlowPyrLK(image0, image1, keypoints0_2f, keypoints1_2f, optical_flow_status, err, cv::Size(15,15), 2, criteria);
+
+        ROS_INFO("Optical Flow: total candidates = %ld", std::count(
+            optical_flow_status.cbegin(), optical_flow_status.cend(), 1
+        ));
+
+        return std::make_tuple(
+            std::cref(keypoints0_2f),
+            std::cref(keypoints1_2f),
+            std::cref(optical_flow_status)
+        );
+    }
+
+    cv::Mat ImageUtil::visualizeOpticalFlow(const cv::Mat &image1, const std::vector<cv::Point2f>& keypoints0_2f, const std::vector<cv::Point2f>& keypoints1_2f, const std::vector<uchar>& optical_flow_status) {
+        // Create some random colors
+        cv::Mat image1_color = image1.clone();
+        cv::cvtColor(image1_color, image1_color, cv::COLOR_GRAY2BGR);
+        cv::RNG rng;
+        cv::Scalar color;
+        int r, g, b, j;
+        for(j = 0; j < keypoints0_2f.size(); ++j)
+        {
+            // Select good points
+            if(optical_flow_status[j] == 1) {
+                // draw the tracks
+                r = rng.uniform(0, 256);
+                g = rng.uniform(0, 256);
+                b = rng.uniform(0, 256);
+                color = cv::Scalar(r,g,b);
+                cv::line(image1_color, keypoints1_2f[j], keypoints0_2f[j], color, 2);
+                cv::circle(image1_color, keypoints1_2f[j], 3, color, -1);
+            }
+        }
+
+        return image1_color;
     }
 }

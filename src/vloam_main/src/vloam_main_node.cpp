@@ -35,7 +35,7 @@
 
 #include <vloam_tf/vloam_tf.h>
 
-#include <opencv2/opencv.hpp>
+#include <opencv4/opencv2/opencv.hpp>
 #include <eigen3/Eigen/Dense>
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
