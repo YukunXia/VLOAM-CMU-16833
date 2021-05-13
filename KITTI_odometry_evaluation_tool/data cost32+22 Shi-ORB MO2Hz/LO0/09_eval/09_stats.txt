@@ -1,2 +1,0 @@
-Average sequence translation RMSE (%):    7.0301
-Average sequence rotation error (deg/m):  0.0234

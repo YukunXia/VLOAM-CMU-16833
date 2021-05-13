@@ -69,3 +69,4 @@ package.json
 # Data
 data/
 src/vloam_main/bags
+KITTI_odometry_evaluation_tool

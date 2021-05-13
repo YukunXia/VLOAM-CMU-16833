@@ -48,6 +48,7 @@ namespace vloam {
             cv::Mat visualizeMatches(const cv::Mat &image0, const cv::Mat &image1, const std::vector<cv::KeyPoint> &keypoints0, const std::vector<cv::KeyPoint> &keypoints1, const std::vector<cv::DMatch>& matches);
             std::tuple<std::vector<cv::Point2f>, std::vector<cv::Point2f>, std::vector<uchar>> calculateOpticalFlow(const cv::Mat &image0, const cv::Mat &image1, const std::vector<cv::KeyPoint> &keypoints0);
             cv::Mat visualizeOpticalFlow(const cv::Mat &image1, const std::vector<cv::Point2f>& keypoints0_2f, const std::vector<cv::Point2f>& keypoints1_2f, const std::vector<uchar>& optical_flow_status);
+            cv::Mat visualizeOpticalFlow(const cv::Mat &image1, const std::vector<cv::KeyPoint>& keypoints0, const std::vector<cv::KeyPoint>& keypoints1, const std::vector<cv::DMatch>& matches);
 
             // std::string path_prefix;
             bool print_result;

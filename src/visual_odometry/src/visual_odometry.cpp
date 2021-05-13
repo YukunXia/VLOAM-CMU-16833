@@ -28,10 +28,10 @@ namespace vloam {
         clahe = cv::createCLAHE(2.0);
         image_util.print_result = false;
         image_util.visualize_result = false;
-        image_util.detector_type = DetectorType::ORB;
+        image_util.detector_type = DetectorType::ShiTomasi;
         image_util.descriptor_type = DescriptorType::ORB;
         image_util.matcher_type = MatcherType::BF;
-        image_util.selector_type = SelectType::NN;
+        image_util.selector_type = SelectType::KNN;
         image_util.remove_VO_outlier = remove_VO_outlier;
         image_util.optical_flow_match = optical_flow_match;
 
@@ -166,14 +166,14 @@ namespace vloam {
         ROS_INFO("Processing point cloud took %f ms +++++\n", t_process_point_cloud.toc()); 
     }
 
-    void VisualOdometry::solveRANSAC() {
+    void VisualOdometry::solveRANSAC() { // TODO: consider KLT case =>  it's not working with KLT 
         TicToc t_ransac;
 
         std::vector<cv::Point2f> prev_pts, curr_pts;
         prev_pts.resize(matches.size());
         curr_pts.resize(matches.size());
         int j = 0;
-        for (const auto& match:matches) { // ~ n=1400 matches
+        for (const auto& match:matches) { // ~ n=1400 matches 
             prev_pts[j] = keypoints[1-i][match.queryIdx].pt;
             curr_pts[j] = keypoints[i][match.trainIdx].pt;
             ++j;
@@ -224,16 +224,16 @@ namespace vloam {
         // std::cout << "t = " << t << std::endl;
 
         cam0_curr_T_cam0_last.setRotation(q_tf2);
-        // float f2f_distance = std::sqrt(
-        //     std::pow(cam0_curr_T_cam0_last.getOrigin().getX(), 2) + 
-        //     std::pow(cam0_curr_T_cam0_last.getOrigin().getY(), 2) + 
-        //     std::pow(cam0_curr_T_cam0_last.getOrigin().getZ(), 2)
-        // );
-        // cam0_curr_T_cam0_last.setOrigin(tf2::Vector3(
-        //     f2f_distance * t.at<double>(0,0),
-        //     f2f_distance * t.at<double>(1,0),
-        //     f2f_distance * t.at<double>(2,0)
-        // ));
+        float f2f_distance = std::sqrt(
+            std::pow(cam0_curr_T_cam0_last.getOrigin().getX(), 2) + 
+            std::pow(cam0_curr_T_cam0_last.getOrigin().getY(), 2) + 
+            std::pow(cam0_curr_T_cam0_last.getOrigin().getZ(), 2)
+        );
+        cam0_curr_T_cam0_last.setOrigin(tf2::Vector3(
+            f2f_distance * t.at<double>(0,0),
+            f2f_distance * t.at<double>(1,0),
+            f2f_distance * t.at<double>(2,0)
+        ));
         
         ROS_INFO("RANSAC VO took %f ms +++++\n", t_ransac.toc()); 
     }
@@ -313,7 +313,7 @@ namespace vloam {
             //             static_cast<double>(point_3d_rect0_1(2))
             //     );
             //     problem.AddResidualBlock(cost_function, loss_function, angles_0to1, t_0to1);
-            //     // ++counter33;
+            //     ++counter33;
             // }
             // else if (depth0 > 0.5 and depth1 <= 0.5) {
             if (depth0 > 0) {
@@ -336,8 +336,8 @@ namespace vloam {
                 ++counter32;
             }
 
-            // // else if (depth0 <= 0.5 and depth1 > 0.5) {
-            // if (depth1 > 0) {
+            // else if (depth0 <= 0.5 and depth1 > 0.5) {
+            // // if (depth1 > 0) {
             //     point_3d_image0_0 << prev_pt_x, prev_pt_y, 1.0f;
             //     point_3d_image0_1 << curr_pt_x*depth1, curr_pt_y*depth1, depth1;
 
@@ -354,9 +354,8 @@ namespace vloam {
             //             static_cast<double>(point_3d_rect0_1(2))
             //     );
             //     problem.AddResidualBlock(cost_function, loss_function, angles_0to1, t_0to1);
-            //     // ++counter23;
+            //     ++counter23;
             // }
-
             else {
             // if (depth0 < 0 and depth1 < 0) {
                 point_3d_image0_0 << prev_pt_x, prev_pt_y, 1.0f;
@@ -372,11 +371,14 @@ namespace vloam {
                         static_cast<double>(point_3d_rect0_1(1)) / static_cast<double>(point_3d_rect0_1(2))
                 );
                 problem.AddResidualBlock(cost_function, loss_function, angles_0to1, t_0to1);
-                // ++counter22;
+                ++counter22;
             }
         }
 
+        // ROS_INFO("counter33 = %d", counter33);
         ROS_INFO("counter32 = %d", counter32);
+        // ROS_INFO("counter23 = %d", counter33);
+        ROS_INFO("counter22 = %d", counter22);
 
         ceres::Solve(options, &problem, &summary);
         // std::cout << summary.FullReport() << "\n";
@@ -402,126 +404,6 @@ namespace vloam {
 
         ROS_INFO("Nonlinear Least square (ALL) VO took %f ms +++++\n", t_nls_all.toc()); 
     }
-
-    // void VisualOdometry::solveNls2dOnly() {
-    //     TicToc t_nls_2d_only;
-
-    //     ceres::LossFunction *loss_function = new ceres::HuberLoss(0.1);
-    //     ceres::Problem problem;   
-
-    //     if (reset_VO_to_identity) { // be careful, not resetting VO when having multiple solve functions will make them coupled
-    //         for (j=0; j<3; ++j) {
-    //             angles_0to1[j] = 0.0;
-    //             t_0to1[j] = 0.0;
-    //         }
-    //         t_0to1[2] = -1.0;
-    //     }
-
-    //     ROS_INFO("Before optmz, t_0to1 = (%.4f, %.4f, %.4f)", t_0to1[0], t_0to1[1], t_0to1[2]); 
-        
-    //     int prev_pt_x, prev_pt_y, curr_pt_x, curr_pt_y;
-    //     for (const auto& match:matches) { // ~ n=1400 matches
-    //         prev_pt_x = keypoints[1-i][match.queryIdx].pt.x;
-    //         prev_pt_y = keypoints[1-i][match.queryIdx].pt.y;
-    //         curr_pt_x = keypoints[i][match.trainIdx].pt.x;
-    //         curr_pt_y = keypoints[i][match.trainIdx].pt.y;
-
-    //         ceres::CostFunction* cost_function = vloam::CostFunctor22Test::Create( // TODO: check if pointer needs to be deleted
-    //             static_cast<double>(prev_pt_x*2) / static_cast<double>(point_cloud_utils[1-i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
-    //             static_cast<double>(prev_pt_y*2) / static_cast<double>(point_cloud_utils[1-i].IMG_HEIGHT),
-    //             static_cast<double>(curr_pt_x*2) / static_cast<double>(point_cloud_utils[i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
-    //             static_cast<double>(curr_pt_y*2) / static_cast<double>(point_cloud_utils[i].IMG_HEIGHT)
-    //         );
-    //         problem.AddResidualBlock(cost_function, loss_function, angles_0to1, t_0to1);
-    //     }
-
-    //     ceres::Solve(options, &problem, &summary);
-    //     std::cout << summary.FullReport() << "\n";
-
-    //     ROS_INFO("angles_0to1 = (%.4f, %.4f, %.4f)", angles_0to1[0], angles_0to1[1], angles_0to1[2]); 
-    //     ROS_INFO("Before normalization, t_0to1 = (%.4f, %.4f, %.4f)", t_0to1[0], t_0to1[1], t_0to1[2]); 
-    //     float t_0to1_norm = std::sqrt(
-    //         std::pow(t_0to1[0], 2) +
-    //         std::pow(t_0to1[1], 2) +
-    //         std::pow(t_0to1[2], 2)
-    //     );
-    //     ROS_INFO("After normalization, t_0to1 = (%.4f, %.4f, %.4f)", t_0to1[0] / (t_0to1_norm + 0.0001), t_0to1[1] / (t_0to1_norm + 0.0001), t_0to1[2] / (t_0to1_norm + 0.0001)); 
-
-    //     // cam0_curr_T_cam0_last.setOrigin(tf2::Vector3(t_0to1[0], t_0to1[1], t_0to1[2]));
-    //     // angle = std::sqrt(std::pow(angles_0to1[0], 2) + std::pow(angles_0to1[1], 2) + std::pow(angles_0to1[2], 2));
-    //     // cam0_curr_q_cam0_last.setRotation(tf2::Vector3(angles_0to1[0]/angle, angles_0to1[1]/angle, angles_0to1[2]/angle), angle);
-    //     // cam0_curr_T_cam0_last.setRotation(cam0_curr_q_cam0_last);
-    
-    //     // ROS_INFO("From LM axis = %.4f, %.4f, %.4f, and angle = %.4f", 
-    //     //     cam0_curr_q_cam0_last.getAxis().getX(),
-    //     //     cam0_curr_q_cam0_last.getAxis().getY(),
-    //     //     cam0_curr_q_cam0_last.getAxis().getZ(),
-    //     //     cam0_curr_q_cam0_last.getAngle()
-    //     // );
-
-    //     // return cam0_curr_T_cam0_last;:solveNls2dOnly() {
-    //     TicToc t_nls_2d_only;
-
-    //     ceres::LossFunction *loss_function = new ceres::HuberLoss(0.1);
-    //     ceres::Problem problem;   
-
-    //     if (reset_VO_to_identity) { // be careful, not resetting VO when having multiple solve functions will make them coupled
-    //         for (j=0; j<3; ++j) {
-    //             angles_0to1[j] = 0.0;
-    //             t_0to1[j] = 0.0;
-    //         }
-    //         t_0to1[2] = -1.0;
-    //     }
-
-    //     ROS_INFO("Before optmz, t_0to1 = (%.4f, %.4f, %.4f)", t_0to1[0], t_0to1[1], t_0to1[2]); 
-        
-    //     int prev_pt_x, prev_pt_y, curr_pt_x, curr_pt_y;
-    //     for (const auto& match:matches) { // ~ n=1400 matches
-    //         prev_pt_x = keypoints[1-i][match.queryIdx].pt.x;
-    //         prev_pt_y = keypoints[1-i][match.queryIdx].pt.y;
-    //         curr_pt_x = keypoints[i][match.trainIdx].pt.x;
-    //         curr_pt_y = keypoints[i][match.trainIdx].pt.y;
-
-    //         ceres::CostFunction* cost_function = vloam::CostFunctor22Test::Create( // TODO: check if pointer needs to be deleted
-    //             static_cast<double>(prev_pt_x*2) / static_cast<double>(point_cloud_utils[1-i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
-    //             static_cast<double>(prev_pt_y*2) / static_cast<double>(point_cloud_utils[1-i].IMG_HEIGHT),
-    //             static_cast<double>(curr_pt_x*2) / static_cast<double>(point_cloud_utils[i].IMG_WIDTH), // normalize xbar ybar to have mean value = 1
-    //             static_cast<double>(curr_pt_y*2) / static_cast<double>(point_cloud_utils[i].IMG_HEIGHT)
-    //         );
-    //         problem.AddResidualBlock(cost_function, loss_function, angles_0to1, t_0to1);
-    //     }
-
-    //     ceres::Solve(options, &problem, &summary);
-    //     std::cout << summary.FullReport() << "\n";
-
-    //     ROS_INFO("angles_0to1 = (%.4f, %.4f, %.4f)", angles_0to1[0], angles_0to1[1], angles_0to1[2]); 
-    //     ROS_INFO("Before normalization, t_0to1 = (%.4f, %.4f, %.4f)", t_0to1[0], t_0to1[1], t_0to1[2]); 
-    //     float t_0to1_norm = std::sqrt(
-    //         std::pow(t_0to1[0], 2) +
-    //         std::pow(t_0to1[1], 2) +
-    //         std::pow(t_0to1[2], 2)
-    //     );
-    //     ROS_INFO("After normalization, t_0to1 = (%.4f, %.4f, %.4f)", t_0to1[0] / (t_0to1_norm + 0.0001), t_0to1[1] / (t_0to1_norm + 0.0001), t_0to1[2] / (t_0to1_norm + 0.0001)); 
-
-    //     // cam0_curr_T_cam0_last.setOrigin(tf2::Vector3(t_0to1[0], t_0to1[1], t_0to1[2]));
-    //     // angle = std::sqrt(std::pow(angles_0to1[0], 2) + std::pow(angles_0to1[1], 2) + std::pow(angles_0to1[2], 2));
-    //     // cam0_curr_q_cam0_last.setRotation(tf2::Vector3(angles_0to1[0]/angle, angles_0to1[1]/angle, angles_0to1[2]/angle), angle);
-    //     // cam0_curr_T_cam0_last.setRotation(cam0_curr_q_cam0_last);
-    
-    //     // ROS_INFO("From LM axis = %.4f, %.4f, %.4f, and angle = %.4f", 
-    //     //     cam0_curr_q_cam0_last.getAxis().getX(),
-    //     //     cam0_curr_q_cam0_last.getAxis().getY(),
-    //     //     cam0_curr_q_cam0_last.getAxis().getZ(),
-    //     //     cam0_curr_q_cam0_last.getAngle()
-    //     // );
-
-    //     // return cam0_curr_T_cam0_last;
-
-    //     ROS_INFO("Nonlinear Least square (2D assocation only) VO took %f ms +++++\n", t_nls_2d_only.toc()); 
-    // }
-
-    //     ROS_INFO("Nonlinear Least square (2D assocation only) VO took %f ms +++++\n", t_nls_2d_only.toc()); 
-    // }
 
     void VisualOdometry::publish () {
 
@@ -577,10 +459,16 @@ namespace vloam {
             pub_depth_viz.publish(depth_viz_cvbridge.toImageMsg());
         }
 
-        if (verbose_level > 0 and count > 0 and visualize_optical_flow and optical_flow_match) {
+        if (verbose_level > 0 and count > 0 and visualize_optical_flow) {
             std_msgs::Header header;
             header.stamp = ros::Time::now();
-            cv::Mat optical_flow_image = image_util.visualizeOpticalFlow(images[i], keypoints_2f[1-i], keypoints_2f[i], optical_flow_status);
+
+            cv::Mat optical_flow_image;
+            if (optical_flow_match)
+                optical_flow_image = image_util.visualizeOpticalFlow(images[i], keypoints_2f[1-i], keypoints_2f[i], optical_flow_status);
+            else
+                optical_flow_image = image_util.visualizeOpticalFlow(images[i], keypoints[1-i], keypoints[i], matches);
+
             optical_flow_viz_cvbridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::RGB8, optical_flow_image);
             pub_optical_flow_viz.publish(optical_flow_viz_cvbridge.toImageMsg());
         }

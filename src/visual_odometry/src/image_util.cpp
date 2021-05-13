@@ -373,4 +373,24 @@ namespace vloam {
 
         return image1_color;
     }
+    cv::Mat ImageUtil::visualizeOpticalFlow(const cv::Mat &image1, const std::vector<cv::KeyPoint>& keypoints0, const std::vector<cv::KeyPoint>& keypoints1, const std::vector<cv::DMatch>& matches) {
+        // Create some random colors
+        cv::Mat image1_color = image1.clone();
+        cv::cvtColor(image1_color, image1_color, cv::COLOR_GRAY2BGR);
+        cv::RNG rng;
+        cv::Scalar color;
+        int r, g, b, j;
+        for(const auto match:matches)
+        {
+            // draw the tracks
+            r = rng.uniform(0, 256);
+            g = rng.uniform(0, 256);
+            b = rng.uniform(0, 256);
+            color = cv::Scalar(r,g,b);
+            cv::line(image1_color, keypoints1[match.trainIdx].pt, keypoints0[match.queryIdx].pt, color, 2);
+            cv::circle(image1_color, keypoints1[match.trainIdx].pt, 3, color, -1);
+        }
+
+        return image1_color;
+    }
 }

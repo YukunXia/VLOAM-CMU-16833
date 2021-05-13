@@ -6,7 +6,7 @@
     <param name="remove_VO_outlier" type="int" value="100" />
     <param name="keypoint_NMS" type="bool" value="false"/>
     <param name="CLAHE" type="bool" value="false"/>
-    <param name="visualize_optical_flow" type="bool" value="false" />
+    <param name="visualize_optical_flow" type="bool" value="true" />
     <param name="optical_flow_match" type="bool" value="false" />
 
     <node pkg="vloam_main" type="vloam_main_node" name="vloam_main_node" output="screen">
