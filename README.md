@@ -10,10 +10,3 @@ PCL 1.2
 Place bag files under "src/vloam_main/bags/"
 
 Note: current dataloader only support "synced" type dataset. 
-
-# To-Do-List
-
-- Add code to point cloud util to receive the transformations from ROS
-- Add code to point cloud util to convert ROS PointCloud2 to Eigen MatrixXd
-- Depth estimation at boundary needs to check point inclusion of the nearest triangle (performance may hurt a little)
-- Parallelize point cloud depth estimation and feature matching
