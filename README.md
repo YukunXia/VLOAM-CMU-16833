@@ -18,8 +18,3 @@ https://github.com/LeoQLi/KITTI_odometry_evaluation_tool
 Place bag files under "src/vloam_main/bags/"
 
 Note: current dataloader only support "synced" type dataset. 
-
-# To-Do-List
-
-- Depth estimation at boundary needs to check point inclusion of the nearest triangle (performance may hurt a little)
-- Parallelize point cloud depth estimation and feature matching
