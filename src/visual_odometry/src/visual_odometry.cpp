@@ -209,31 +209,31 @@ namespace vloam {
 
         // ROS_INFO("R quaternion is %.4f, %.4f, %.4f, %.4f", q_tf2.getX(), q_tf2.getY(), q_tf2.getZ(), q_tf2.getW());
 
-        ROS_INFO("From RANSAC, axis angle = %.4f, %.4f, %.4f", 
-            q_tf2.getAxis().getX() * q_tf2.getAngle(),
-            q_tf2.getAxis().getY() * q_tf2.getAngle(),
-            q_tf2.getAxis().getZ() * q_tf2.getAngle()
-        );
-        // ROS_INFO("From RANSAC axis = %.4f, %.4f, %.4f, and angle = %.4f", 
-        //     q_tf2.getAxis().getX(),
-        //     q_tf2.getAxis().getY(),
-        //     q_tf2.getAxis().getZ(),
-        //     q_tf2.getAngle()
+        // ROS_INFO("From RANSAC, axis angle = %.4f, %.4f, %.4f", 
+        //     q_tf2.getAxis().getX() * q_tf2.getAngle(),
+        //     q_tf2.getAxis().getY() * q_tf2.getAngle(),
+        //     q_tf2.getAxis().getZ() * q_tf2.getAngle()
         // );
+        ROS_INFO("From RANSAC axis = %.4f, %.4f, %.4f, and angle = %.4f", 
+            q_tf2.getAxis().getX(),
+            q_tf2.getAxis().getY(),
+            q_tf2.getAxis().getZ(),
+            q_tf2.getAngle()
+        );
         ROS_INFO("Froma RANSAC, t = %.4f, %.4f, %.4f", t.at<double>(0,0), t.at<double>(1,0), t.at<double>(2,0) );
         // std::cout << "t = " << t << std::endl;
 
-        cam0_curr_T_cam0_last.setRotation(q_tf2);
-        float f2f_distance = std::sqrt(
-            std::pow(cam0_curr_T_cam0_last.getOrigin().getX(), 2) + 
-            std::pow(cam0_curr_T_cam0_last.getOrigin().getY(), 2) + 
-            std::pow(cam0_curr_T_cam0_last.getOrigin().getZ(), 2)
-        );
-        cam0_curr_T_cam0_last.setOrigin(tf2::Vector3(
-            f2f_distance * t.at<double>(0,0),
-            f2f_distance * t.at<double>(1,0),
-            f2f_distance * t.at<double>(2,0)
-        ));
+        // cam0_curr_T_cam0_last.setRotation(q_tf2);
+        // float f2f_distance = std::sqrt(
+        //     std::pow(cam0_curr_T_cam0_last.getOrigin().getX(), 2) + 
+        //     std::pow(cam0_curr_T_cam0_last.getOrigin().getY(), 2) + 
+        //     std::pow(cam0_curr_T_cam0_last.getOrigin().getZ(), 2)
+        // );
+        // cam0_curr_T_cam0_last.setOrigin(tf2::Vector3(
+        //     f2f_distance * t.at<double>(0,0),
+        //     f2f_distance * t.at<double>(1,0),
+        //     f2f_distance * t.at<double>(2,0)
+        // ));
         
         ROS_INFO("RANSAC VO took %f ms +++++\n", t_ransac.toc()); 
     }
@@ -390,7 +390,13 @@ namespace vloam {
     
 
         ROS_INFO("angles_0to1 = (%.4f, %.4f, %.4f)", angles_0to1[0], angles_0to1[1], angles_0to1[2]); 
-        ROS_INFO("q_0to1 = (%.4f, %.4f, %.4f, %.4f)", cam0_curr_q_cam0_last.getX(), cam0_curr_q_cam0_last.getY(), cam0_curr_q_cam0_last.getZ(), cam0_curr_q_cam0_last.getW()); 
+        // ROS_INFO("q_0to1 = (%.4f, %.4f, %.4f, %.4f)", cam0_curr_q_cam0_last.getX(), cam0_curr_q_cam0_last.getY(), cam0_curr_q_cam0_last.getZ(), cam0_curr_q_cam0_last.getW()); 
+        ROS_INFO("From nllsq axis = %.4f, %.4f, %.4f, and angle = %.4f", 
+            cam0_curr_q_cam0_last.getAxis().getX(),
+            cam0_curr_q_cam0_last.getAxis().getY(),
+            cam0_curr_q_cam0_last.getAxis().getZ(),
+            cam0_curr_q_cam0_last.getAngle()
+        );
         ROS_INFO("t_0to1 = (%.4f, %.4f, %.4f)", t_0to1[0], t_0to1[1], t_0to1[2]); 
     
         // ROS_INFO("From LM axis = %.4f, %.4f, %.4f, and angle = %.4f", 

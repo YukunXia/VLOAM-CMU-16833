@@ -164,8 +164,6 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(vloam_main_node src/vloam_main_node.cpp)
-add_executable(vloam_main_pose src/vloam_main_pose.cpp)
-add_executable(odometryEvaluate src/odometryEvaluate.cpp)
 
 
 ## Rename C++ executable without prefix
@@ -177,18 +175,10 @@ add_executable(odometryEvaluate src/odometryEvaluate.cpp)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(vloam_main_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(vloam_main_pose ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(odometryEvaluate ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(vloam_main_node
   ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} Eigen3::Eigen ${CERES_LIBRARIES} image_util point_cloud_util visual_odometry lidar_odometry_mapping vloam_tf
-)
-target_link_libraries(vloam_main_pose
-  ${catkin_LIBRARIES} ${OpenCV_LIBS} ${PCL_LIBRARIES} Eigen3::Eigen ${CERES_LIBRARIES} image_util point_cloud_util 
-)
-target_link_libraries(odometryEvaluate
-  ${catkin_LIBRARIES} Eigen3::Eigen
 )
 
 #############
