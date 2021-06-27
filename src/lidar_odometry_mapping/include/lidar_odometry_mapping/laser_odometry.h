@@ -1,10 +1,9 @@
 // This is an advanced implementation of the algorithm described in the following paper:
 //   J. Zhang and S. Singh. LOAM: Lidar Odometry and Mapping in Real-time.
-//     Robotics: Science and Systems Conference (RSS). Berkeley, CA, July 2014. 
+//     Robotics: Science and Systems Conference (RSS). Berkeley, CA, July 2014.
 
 // Modifier: Tong Qin               qintonguav@gmail.com
 // 	         Shaozu Cao 		    saozu.cao@connect.ust.hk
-
 
 // Copyright 2013, Ji Zhang, Carnegie Mellon University
 // Further contributions copyright (c) 2016, Southwest Research Institute
@@ -36,123 +35,115 @@
 
 #pragma once
 
-#include <cmath>
+#include <geometry_msgs/PoseStamped.h>
+#include <lidar_odometry_mapping/common.h>
+#include <lidar_odometry_mapping/tic_toc.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/kdtree/kdtree_flann.h>
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/PointCloud2.h>
-#include <tf/transform_datatypes.h>
 #include <tf/transform_broadcaster.h>
+#include <tf/transform_datatypes.h>
+#include <vloam_tf/vloam_tf.h>
+
+#include <cmath>
 #include <eigen3/Eigen/Dense>
+#include <lidar_odometry_mapping/lidarFactor.hpp>
 #include <mutex>
 #include <queue>
 
-#include <lidar_odometry_mapping/common.h>
-#include <lidar_odometry_mapping/tic_toc.h>
-#include <lidar_odometry_mapping/lidarFactor.hpp>
+namespace vloam
+{
+class LaserOdometry
+{
+public:
+  LaserOdometry() : q_last_curr(para_q), t_last_curr(para_t), nh("laser_odometry_node")
+  {
+  }
 
-#include <vloam_tf/vloam_tf.h>
+  void init(std::shared_ptr<VloamTF>& vloam_tf_);
 
-namespace vloam {
+  // void reset ();
 
-    class LaserOdometry {
-        public:
-            LaserOdometry() : 
-                q_last_curr(para_q), 
-                t_last_curr(para_t),
-                nh("laser_odometry_node")
-            {}
+  void input(const pcl::PointCloud<PointType>::Ptr& laserCloud_,
+             const pcl::PointCloud<PointType>::Ptr& cornerPointsSharp_,
+             const pcl::PointCloud<PointType>::Ptr& cornerPointsLessSharp_,
+             const pcl::PointCloud<PointType>::Ptr& surfPointsFlat_,
+             const pcl::PointCloud<PointType>::Ptr& surfPointsLessFlat_);
+  void solveLO();
+  void publish();
+  void output(Eigen::Quaterniond& q_w_curr_, Eigen::Vector3d& t_w_curr,
+              pcl::PointCloud<PointType>::Ptr& laserCloudCornerLast_,
+              pcl::PointCloud<PointType>::Ptr& laserCloudSurfLast_, pcl::PointCloud<PointType>::Ptr& laserCloudFullRes_,
+              bool& skip_frame);
 
-            void init (std::shared_ptr<VloamTF>& vloam_tf_);
+  void TransformToStart(PointType const* const pi, PointType* const po);
+  void TransformToEnd(PointType const* const pi, PointType* const po);
 
-            // void reset ();
+private:
+  const bool DISTORTION = false;
 
-            void input(
-                const pcl::PointCloud<PointType>::Ptr& laserCloud_,
-                const pcl::PointCloud<PointType>::Ptr& cornerPointsSharp_,
-                const pcl::PointCloud<PointType>::Ptr& cornerPointsLessSharp_,
-                const pcl::PointCloud<PointType>::Ptr& surfPointsFlat_,
-                const pcl::PointCloud<PointType>::Ptr& surfPointsLessFlat_
-            );
-            void solveLO();
-            void publish();
-            void output (
-                Eigen::Quaterniond& q_w_curr_,
-                Eigen::Vector3d& t_w_curr,
-                pcl::PointCloud<PointType>::Ptr& laserCloudCornerLast_,
-                pcl::PointCloud<PointType>::Ptr& laserCloudSurfLast_,
-                pcl::PointCloud<PointType>::Ptr& laserCloudFullRes_,
-                bool& skip_frame
-            );
+  int corner_correspondence, plane_correspondence;
+  const double SCAN_PERIOD = 0.1;
+  const double DISTANCE_SQ_THRESHOLD = 25;
+  const double NEARBY_SCAN = 2.5;
 
-            void TransformToStart(PointType const *const pi, PointType *const po);
-            void TransformToEnd(PointType const *const pi, PointType *const po);
+  int mapping_skip_frame;
+  bool systemInited;
 
-        private:
-            const bool DISTORTION = false;
+  double timeCornerPointsSharp;
+  double timeCornerPointsLessSharp;
+  double timeSurfPointsFlat;
+  double timeSurfPointsLessFlat;
+  double timeLaserCloudFullRes;
 
-            int corner_correspondence, plane_correspondence;
-            const double SCAN_PERIOD = 0.1;
-            const double DISTANCE_SQ_THRESHOLD = 25;
-            const double NEARBY_SCAN = 2.5;
+  pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdtreeCornerLast;
+  pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdtreeSurfLast;
 
-            int mapping_skip_frame;
-            bool systemInited;
+  pcl::PointCloud<PointType>::Ptr cornerPointsSharp;
+  pcl::PointCloud<PointType>::Ptr cornerPointsLessSharp;
+  pcl::PointCloud<PointType>::Ptr surfPointsFlat;
+  pcl::PointCloud<PointType>::Ptr surfPointsLessFlat;
 
-            double timeCornerPointsSharp;
-            double timeCornerPointsLessSharp;
-            double timeSurfPointsFlat;
-            double timeSurfPointsLessFlat;
-            double timeLaserCloudFullRes;
+  pcl::PointCloud<PointType>::Ptr laserCloudCornerLast;
+  pcl::PointCloud<PointType>::Ptr laserCloudSurfLast;
+  pcl::PointCloud<PointType>::Ptr laserCloudFullRes;
 
-            pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdtreeCornerLast;
-            pcl::KdTreeFLANN<pcl::PointXYZI>::Ptr kdtreeSurfLast;
+  int laserCloudCornerLastNum;
+  int laserCloudSurfLastNum;
 
-            pcl::PointCloud<PointType>::Ptr cornerPointsSharp;
-            pcl::PointCloud<PointType>::Ptr cornerPointsLessSharp;
-            pcl::PointCloud<PointType>::Ptr surfPointsFlat;
-            pcl::PointCloud<PointType>::Ptr surfPointsLessFlat;
+  // Transformation from current frame to world frame
+  Eigen::Quaterniond q_w_curr;
+  Eigen::Vector3d t_w_curr;
 
-            pcl::PointCloud<PointType>::Ptr laserCloudCornerLast;
-            pcl::PointCloud<PointType>::Ptr laserCloudSurfLast;
-            pcl::PointCloud<PointType>::Ptr laserCloudFullRes;
+  // q_curr_last(x, y, z, w), t_curr_last
+  double para_q[4];
+  double para_t[3];
 
-            int laserCloudCornerLastNum;
-            int laserCloudSurfLastNum;
+  Eigen::Map<Eigen::Quaterniond> q_last_curr;
+  Eigen::Map<Eigen::Vector3d> t_last_curr;
 
-            // Transformation from current frame to world frame
-            Eigen::Quaterniond q_w_curr;
-            Eigen::Vector3d t_w_curr;
+  std::shared_ptr<VloamTF> vloam_tf;
 
-            // q_curr_last(x, y, z, w), t_curr_last
-            double para_q[4];
-            double para_t[3];
+  ros::NodeHandle nh;
+  int verbose_level;
+  bool detach_VO_LO;
 
-            Eigen::Map<Eigen::Quaterniond> q_last_curr;
-            Eigen::Map<Eigen::Vector3d> t_last_curr;
+  ros::Publisher pubLaserCloudCornerLast;
+  ros::Publisher pubLaserCloudSurfLast;
+  ros::Publisher pubLaserCloudFullRes;
+  ros::Publisher pubLaserOdometry;
+  ros::Publisher pubLaserPath;
 
-            std::shared_ptr<VloamTF> vloam_tf;
+  nav_msgs::Path laserPath;
 
-            ros::NodeHandle nh;
-            int verbose_level;
-            bool detach_VO_LO;
+  int frameCount;
+};
 
-            ros::Publisher pubLaserCloudCornerLast;
-            ros::Publisher pubLaserCloudSurfLast;
-            ros::Publisher pubLaserCloudFullRes;
-            ros::Publisher pubLaserOdometry;
-            ros::Publisher pubLaserPath;
-
-            nav_msgs::Path laserPath;
-
-            int frameCount;
-    };
-
-}
+}  // namespace vloam
