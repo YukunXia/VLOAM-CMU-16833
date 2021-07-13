@@ -5,7 +5,8 @@ PCL 1.2
 
 # Usage 1
 
-- Step 1, download bag files under "/bags"
+- Step 1, create and move bag files to "REPO_ROOT/src/vloam_main/bags"
+  - For example: https://github.com/tomas789/kitti2bag
 
 - Step 2, `catkin_make`, and then `roslaunch vloam_main vloam_main.launch` (Toggle param ```save_traj``` to save odometry path into txt)
 
